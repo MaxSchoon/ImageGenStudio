@@ -404,15 +404,16 @@ async function generateWithHuggingFace(prompt: string, layout: Layout, imageData
 
     // Use imageToImage API when reference image is provided (FLUX.1-Kontext-dev supports this)
     if (imageData) {
-      // Convert data URI to Buffer for imageToImage API
-      const { data } = parseImageData(imageData);
+      // Convert data URI to Blob for imageToImage API
+      const { data, mimeType } = parseImageData(imageData);
       const imageBuffer = Buffer.from(data, 'base64');
+      const imageBlob = new Blob([imageBuffer], { type: mimeType });
 
       console.log('Using imageToImage API with reference image');
       result = await client.imageToImage({
         provider: provider as any,
         model: model,
-        inputs: imageBuffer,
+        inputs: imageBlob,
         parameters: {
           prompt: prompt,
           // You can add more parameters here if needed
