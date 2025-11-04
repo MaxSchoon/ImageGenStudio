@@ -6,7 +6,8 @@ A modern image generation application built with Next.js, React, and Tailwind CS
 
 - 🎨 Modern glass morphism design
 - 📱 Multiple layout options (Landscape, Mobile, Square)
-- ⚡ Fast image generation using nanobanana
+- ⚡ Fast image generation using Google Gemini or Grok
+- 🤖 Model switching between Google and Grok
 - 🖼️ Image preview and download
 - ⏳ Beautiful loading screen
 
@@ -39,7 +40,9 @@ npm run dev
 
 ## Configuration
 
-### Google Generative AI API Setup
+### API Setup
+
+#### Google Generative AI API Setup
 
 1. Create a `.env.local` file in the root directory (if it doesn't exist):
    ```
@@ -53,16 +56,34 @@ npm run dev
 
    **⚠️ Geographic Restrictions**: If you get "Image generation is not available in your country" error, you need to deploy the app to a server in a supported region (like Vercel, which runs in US regions by default). The restriction is based on the server's location, not your local machine. See [Deployment](#deployment) section below.
 
-2. The API key and endpoint are automatically used from `.env.local`
+#### Grok (xAI) API Setup
 
-3. Error handling: The app now includes detailed error messages that will help diagnose issues:
+1. **Obtain a Grok API Key**:
+   - Sign up for an account at [x.ai](https://x.ai) or visit the [xAI Developer Console](https://console.x.ai)
+   - Navigate to API Keys section in your account settings
+   - Generate a new API key
+
+2. **Add to `.env.local`**:
+   ```
+   GROK_API_KEY=your_grok_api_key_here
+   ```
+   Or alternatively:
+   ```
+   XAI_API_KEY=your_grok_api_key_here
+   ```
+   
+   Both `GROK_API_KEY` and `XAI_API_KEY` are supported for compatibility.
+
+3. **API Documentation**: 
+   - Official xAI API documentation: [https://docs.x.ai/](https://docs.x.ai/)
+   - Note: xAI's Grok API primarily supports text generation. For image generation, you may need to check xAI's latest documentation for image generation endpoints or capabilities.
+
+4. **Error handling**: The app includes detailed error messages:
    - Network errors will show connection issues
    - API errors will display the status code and error message
    - Missing configuration will prompt you to add the API key
 
-4. Check the browser console and server logs for detailed error information if generation fails.
-
-5. Adjust the response parsing in `app/api/generate/route.ts` based on your nanobanana API response format if needed.
+5. Check the browser console and server logs for detailed error information if generation fails.
 
 ## Project Structure
 
@@ -77,6 +98,7 @@ ImageGen/
 │   └── page.tsx              # Home page
 ├── components/
 │   ├── ImageStudio.tsx       # Main studio component
+│   ├── ModelSelector.tsx    # Model selection UI (Google/Grok)
 │   ├── LayoutSelector.tsx   # Layout selection UI
 │   ├── LoadingScreen.tsx    # Loading state component
 │   └── ImagePreview.tsx     # Image preview component
@@ -110,8 +132,9 @@ To bypass geographic restrictions with Google's image generation API, deploy you
    - Go to [vercel.com](https://vercel.com)
    - Import your GitHub repository
    - Add your environment variables:
-     - `GOOGLE_API_KEY`: Your Google API key
+     - `GOOGLE_API_KEY`: Your Google API key (required for Google model)
      - `GOOGLE_MODEL`: `gemini-2.0-flash-exp` (optional)
+     - `GROK_API_KEY` or `XAI_API_KEY`: Your Grok API key (required for Grok model)
    - Deploy
 
 3. **Why Vercel works**: Vercel runs your server-side API routes on infrastructure in supported regions (US by default), which bypasses the geographic restriction.

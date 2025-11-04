@@ -4,13 +4,16 @@ import { useState } from 'react';
 import LayoutSelector from './LayoutSelector';
 import LoadingScreen from './LoadingScreen';
 import ImagePreview from './ImagePreview';
+import ModelSelector from './ModelSelector';
 import { generateImage } from '@/lib/nanobanana';
 
 type Layout = 'landscape' | 'mobile' | 'square';
+type Model = 'google' | 'grok';
 
 export default function ImageStudio() {
   const [prompt, setPrompt] = useState('');
   const [selectedLayout, setSelectedLayout] = useState<Layout>('square');
+  const [selectedModel, setSelectedModel] = useState<Model>('google');
   const [isLoading, setIsLoading] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +29,7 @@ export default function ImageStudio() {
     setGeneratedImage(null);
 
     try {
-      const imageUrl = await generateImage(prompt, selectedLayout);
+      const imageUrl = await generateImage(prompt, selectedLayout, selectedModel);
       console.log('ImageStudio received imageUrl:', {
         hasImageUrl: !!imageUrl,
         imageUrlLength: imageUrl?.length || 0,
@@ -48,6 +51,11 @@ export default function ImageStudio() {
         <h1 className="text-4xl font-bold text-black mb-8 text-center">
           Image Generation Studio
         </h1>
+
+        <ModelSelector
+          selectedModel={selectedModel}
+          onSelect={setSelectedModel}
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left Column: Image Prompt and Layout */}

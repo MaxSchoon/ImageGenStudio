@@ -1,6 +1,7 @@
 type Layout = 'landscape' | 'mobile' | 'square';
+type Model = 'google' | 'grok';
 
-export async function generateImage(prompt: string, layout: Layout): Promise<string> {
+export async function generateImage(prompt: string, layout: Layout, model: Model = 'google'): Promise<string> {
   try {
     const response = await fetch('/api/generate', {
       method: 'POST',
@@ -10,6 +11,7 @@ export async function generateImage(prompt: string, layout: Layout): Promise<str
       body: JSON.stringify({
         prompt,
         layout,
+        model,
       }),
     });
 
