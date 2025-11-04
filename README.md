@@ -1,17 +1,17 @@
 # Image Generation Studio
 
-A modern image generation application built with Next.js, React, and Tailwind CSS. Generate images using Google Gemini or xAI Grok with a beautiful glass morphism UI.
+A modern image generation application built with Next.js, React, and Tailwind CSS. Generate images using Google Gemini, xAI Grok, or Hugging Face FLUX.1 with a beautiful glass morphism UI.
 
 ## Features
 
 - 🎨 Modern glass morphism design
 - 📱 Multiple layout options (Landscape, Mobile, Square)
-- ⚡ Fast image generation using Google Gemini or xAI Grok
-- 🤖 Model switching between Google and Grok
+- ⚡ Fast image generation using Google Gemini, xAI Grok, or Hugging Face FLUX.1
+- 🤖 Model switching between Google, Grok, and FLUX.1
 - 🖼️ Image preview and download
 - ⏳ Beautiful loading screen
 - ✍️ AI-powered text autocomplete and spell correction
-- 🖼️ Image-to-image generation (upload reference images)
+- 🖼️ Image-to-image generation with reference images (Google Gemini only)
 
 ## Getting Started
 
@@ -76,12 +76,33 @@ GROK_COMPLETION_MODEL=grok-2-1212  # Text completion model (default: grok-2-1212
 - Navigate to API Keys section in your account settings
 - Generate a new API key
 
-**API Documentation**: 
+**API Documentation**:
 - Official xAI API documentation: [https://docs.x.ai/](https://docs.x.ai/)
 - Image generation endpoint: [https://docs.x.ai/docs/api-reference#image-generations](https://docs.x.ai/docs/api-reference#image-generations)
 - Chat completions endpoint: [https://docs.x.ai/docs/api-reference#chat-completions](https://docs.x.ai/docs/api-reference#chat-completions)
 
-**Note**: Grok's image generation API supports fixed dimensions, but the app will pass your selected layout dimensions in case the API supports them in future updates. Reference images are not directly supported by Grok's image generation endpoint; the app enhances the text prompt instead.
+**Note**: Grok's image generation API supports fixed dimensions, but the app will pass your selected layout dimensions in case the API supports them in future updates. **Reference images are not supported by Grok** - use Google Gemini for image-to-image generation.
+
+#### Hugging Face API Setup (FLUX.1)
+
+```bash
+HF_TOKEN=your_huggingface_token_here
+HF_MODEL=black-forest-labs/FLUX.1-dev  # Image generation model (default: FLUX.1-dev)
+HF_PROVIDER=nebius  # Provider for fast inference (default: nebius)
+```
+
+- **HF_TOKEN**: Your Hugging Face API token (required) - Get it from [Hugging Face Settings](https://huggingface.co/settings/tokens)
+- **HF_MODEL**: The Hugging Face model to use (optional, defaults to `black-forest-labs/FLUX.1-dev`)
+- **HF_PROVIDER**: The inference provider (optional, defaults to `nebius` for fast inference)
+
+**Obtaining a Hugging Face Token**:
+- Sign up at [Hugging Face](https://huggingface.co/)
+- Go to Settings → Access Tokens
+- Create a new token with read permissions
+
+**API Documentation**: [Hugging Face Inference API](https://huggingface.co/docs/api-inference/index)
+
+**Note**: FLUX.1 uses Hugging Face's text-to-image inference endpoint. **Reference images are not supported by FLUX.1** - use Google Gemini for image-to-image generation.
 
 ## Project Structure
 
@@ -111,10 +132,12 @@ ImageGen/
 
 ### Image Generation
 
-- **Text-to-Image**: Generate images from text prompts
-- **Image-to-Image**: Upload a reference image to guide the generation
+- **Text-to-Image**: Generate images from text prompts (all models)
+- **Image-to-Image**: Upload a reference image to guide the generation (**Google Gemini only**)
+  - ⚠️ Reference images are **not supported** by Grok or FLUX.1 models
+  - For image-to-image generation, use Google Gemini
 - **Layout Options**: Choose from Landscape (16:9), Mobile (9:16), or Square (1:1) aspect ratios
-- **Model Selection**: Switch between Google Gemini and xAI Grok models
+- **Model Selection**: Switch between Google Gemini, xAI Grok, and Hugging Face FLUX.1 models
 
 ### AI Text Autocomplete
 
@@ -158,6 +181,9 @@ To bypass geographic restrictions with Google's image generation API, deploy you
      - `GROK_API_KEY` or `XAI_API_KEY`: Your Grok API key (required for Grok model)
      - `GROK_MODEL`: `grok-2-image-1212` (optional)
      - `GROK_COMPLETION_MODEL`: `grok-2-1212` (optional)
+     - `HF_TOKEN`: Your Hugging Face token (required for FLUX.1 model)
+     - `HF_MODEL`: `black-forest-labs/FLUX.1-dev` (optional)
+     - `HF_PROVIDER`: `nebius` (optional)
    - Deploy
 
 3. **Why Vercel works**: Vercel runs your server-side API routes on infrastructure in supported regions (US by default), which bypasses the geographic restriction.
