@@ -420,20 +420,25 @@ async function generateWithHuggingFace(prompt: string, layout: Layout, imageData
     });
 
     // Convert result to base64 data URI
-    // The result could be a Blob or already a buffer/string depending on the provider
+    // In Node.js, the Hugging Face client returns a Blob-like object or Buffer
     let imageUrl: string;
+    let imageSize: number;
 
-    if (result instanceof Blob) {
-      // If it's a Blob, convert to base64
-      const arrayBuffer = await result.arrayBuffer();
+    // Check if result has arrayBuffer method (Blob-like)
+    if (typeof (result as any).arrayBuffer === 'function') {
+      // If it's a Blob-like object, convert to base64
+      const arrayBuffer = await (result as any).arrayBuffer();
       const base64 = Buffer.from(arrayBuffer).toString('base64');
-      imageUrl = `data:${result.type};base64,${base64}`;
-      console.log('Successfully generated image with Hugging Face (Blob), size:', result.size, 'bytes');
+      const mimeType = (result as any).type || 'image/jpeg';
+      imageUrl = `data:${mimeType};base64,${base64}`;
+      imageSize = (result as any).size || arrayBuffer.byteLength;
+      console.log('Successfully generated image with Hugging Face (Blob-like), size:', imageSize, 'bytes');
     } else if (Buffer.isBuffer(result)) {
       // If it's already a Buffer, convert directly
       const base64 = result.toString('base64');
       imageUrl = `data:image/jpeg;base64,${base64}`;
-      console.log('Successfully generated image with Hugging Face (Buffer), size:', result.length, 'bytes');
+      imageSize = result.length;
+      console.log('Successfully generated image with Hugging Face (Buffer), size:', imageSize, 'bytes');
     } else {
       throw new Error('Unexpected response type from Hugging Face API');
     }
