@@ -27,6 +27,36 @@ export default function AutocompleteTextarea({
   const abortControllerRef = useRef<AbortController | null>(null);
   const lastValueRef = useRef<string>('');
 
+  // Auto-resize textarea based on content
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    // Reset height to auto to get the correct scrollHeight
+    textarea.style.height = 'auto';
+    
+    // Calculate the new height based on scrollHeight
+    const scrollHeight = textarea.scrollHeight;
+    
+    // Get computed styles for more accurate minimum height calculation
+    const computedStyle = window.getComputedStyle(textarea);
+    const lineHeight = parseFloat(computedStyle.lineHeight) || 24;
+    const paddingTop = parseFloat(computedStyle.paddingTop) || 12;
+    const paddingBottom = parseFloat(computedStyle.paddingBottom) || 12;
+    
+    // Calculate minimum height based on rows prop
+    const minHeight = rows * lineHeight + paddingTop + paddingBottom;
+    
+    // Set the height to match content, with a minimum height
+    const newHeight = Math.max(scrollHeight, minHeight);
+    textarea.style.height = `${newHeight}px`;
+
+    // Also update ghost text container height to match
+    if (ghostTextRef.current) {
+      ghostTextRef.current.style.height = `${newHeight}px`;
+    }
+  }, [value, ghostText, rows]);
+
   // Fetch completion from API
   const fetchCompletion = useCallback(async (prompt: string) => {
     // Cancel previous request if any
@@ -181,7 +211,7 @@ export default function AutocompleteTextarea({
   }, []);
 
   return (
-    <div className={`relative w-full bg-white/90 backdrop-blur-sm rounded-lg ${className}`}>
+    <div className={`relative w-full bg-white/90 backdrop-blur-sm rounded-lg overflow-hidden ${className}`}>
       {/* Ghost text overlay - positioned behind textarea */}
       <div
         ref={ghostTextRef}
@@ -193,10 +223,12 @@ export default function AutocompleteTextarea({
         }}
       >
         <div
-          className="whitespace-pre-wrap break-words h-full w-full"
+          className="whitespace-pre-wrap break-words w-full"
           style={{
             padding: '0.75rem 1rem',
             color: 'transparent',
+            wordWrap: 'break-word',
+            overflowWrap: 'break-word',
           }}
         >
           {/* Show user's text as transparent to match textarea */}
@@ -224,12 +256,15 @@ export default function AutocompleteTextarea({
         onKeyDown={handleKeyDown}
         onScroll={handleScroll}
         placeholder={isLoading ? 'Predicting...' : placeholder}
-        className="relative w-full px-4 py-3 bg-transparent rounded-lg border border-black/20 text-black placeholder-black/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+        className="relative w-full px-4 py-3 bg-transparent rounded-lg border border-black/20 text-black placeholder-black/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none overflow-hidden"
         rows={rows}
         style={{
           position: 'relative',
           zIndex: 1,
           caretColor: 'black', // Ensure cursor is visible
+          wordWrap: 'break-word',
+          overflowWrap: 'break-word',
+          overflow: 'hidden',
         }}
       />
 
