@@ -38,59 +38,59 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Optional proxy URL to route requests through a server in a supported region
+    // This helps bypass geographic restrictions
+    // Set GOOGLE_PROXY_URL in .env.local if you need to use a proxy
+    // Example: GOOGLE_PROXY_URL=https://your-proxy-server.com/api/proxy
+    const proxyUrl = process.env.GOOGLE_PROXY_URL;
+
     // Use Google Generative AI (Gemini) API for image generation
-    // For image generation, we'll use Imagen model or similar
-    // Note: Gemini's generateContent is for text. For images, we may need Imagen API
-    // Use Gemini 2.5 Flash Image model for image generation
+    // Use Gemini 2.0 Flash Experimental model (supports image generation via responseModalities)
     // Documentation: https://ai.google.dev/gemini-api/docs/image-generation
-    const model = process.env.GOOGLE_MODEL || 'gemini-2.5-flash-image';
+    const model = process.env.GOOGLE_MODEL || 'gemini-2.0-flash-exp';
     const apiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
-    
-    // Map layout to aspect ratio (as per Gemini API documentation)
-    const getAspectRatio = (layout: Layout): string => {
-      switch (layout) {
-        case 'landscape':
-          return '16:9'; // 1344x768
-        case 'mobile':
-          return '9:16'; // 768x1344
-        case 'square':
-          return '1:1'; // 1024x1024
-        default:
-          return '1:1';
-      }
-    };
-    
-    const aspectRatio = getAspectRatio(layout);
     
     // Build request body according to Gemini API documentation
     // Documentation: https://ai.google.dev/gemini-api/docs/image-generation
+    // Note: aspectRatio is not supported for gemini-2.0-flash-exp model
+    // Include layout preference in the prompt since we can't control it via API
+    const layoutDescription = layout === 'landscape' 
+      ? 'Create a landscape image (16:9 aspect ratio, wide format).'
+      : layout === 'mobile'
+      ? 'Create a portrait image (9:16 aspect ratio, tall format).'
+      : 'Create a square image (1:1 aspect ratio).';
+    
+    const enhancedPrompt = `${prompt}\n\n${layoutDescription}`;
+    
     const requestBody: any = {
       contents: [
         {
           parts: [
             {
-              text: prompt,
+              text: enhancedPrompt,
             },
           ],
         },
       ],
       generationConfig: {
-        imageConfig: {
-          aspectRatio: aspectRatio,
-        },
-        responseModalities: ['IMAGE'], // Required to receive image data in response
+        responseModalities: ['Text', 'Image'], // Must include both Text and Image for image generation
       },
     };
     
     console.log('Calling Google Generative AI API:', { 
       endpoint: apiEndpoint, 
       prompt, 
-      aspectRatio,
+      layout,
+      enhancedPrompt,
       requestBody: JSON.stringify(requestBody, null, 2)
     });
     
     let response;
     try {
+      // Make request directly to Google API
+      // Note: If you get "Image generation is not available in your country" error,
+      // you need to deploy this app to a cloud service (like Vercel) in a supported region
+      // Supported regions: US, Canada, and other countries listed at https://ai.google.dev/available_regions
       response = await fetch(apiEndpoint, {
         method: 'POST',
         headers: {

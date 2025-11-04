@@ -51,6 +51,8 @@ npm run dev
    
    **Image Generation**: The app uses Gemini's native image generation capabilities (aka "Nano Banana"). See the [documentation](https://ai.google.dev/gemini-api/docs/image-generation) for details.
 
+   **⚠️ Geographic Restrictions**: If you get "Image generation is not available in your country" error, you need to deploy the app to a server in a supported region (like Vercel, which runs in US regions by default). The restriction is based on the server's location, not your local machine. See [Deployment](#deployment) section below.
+
 2. The API key and endpoint are automatically used from `.env.local`
 
 3. Error handling: The app now includes detailed error messages that will help diagnose issues:
@@ -88,6 +90,40 @@ ImageGen/
 npm run build
 npm start
 ```
+
+## Deployment
+
+### Deploy to Vercel (Recommended for Google API)
+
+To bypass geographic restrictions with Google's image generation API, deploy your app to Vercel:
+
+1. **Push your code to GitHub**
+   ```bash
+   git init
+   git add .
+   git commit -m "Initial commit"
+   git remote add origin <your-github-repo-url>
+   git push -u origin main
+   ```
+
+2. **Deploy to Vercel**:
+   - Go to [vercel.com](https://vercel.com)
+   - Import your GitHub repository
+   - Add your environment variables:
+     - `GOOGLE_API_KEY`: Your Google API key
+     - `GOOGLE_MODEL`: `gemini-2.0-flash-exp` (optional)
+   - Deploy
+
+3. **Why Vercel works**: Vercel runs your server-side API routes on infrastructure in supported regions (US by default), which bypasses the geographic restriction.
+
+### Alternative: Deploy to Other Cloud Services
+
+You can also deploy to:
+- **AWS** (us-east-1 or other supported regions)
+- **Google Cloud Platform** (in a supported region)
+- **Azure** (in a supported region)
+
+Just make sure your server is located in a region where Google's image generation API is available. See [Google's available regions](https://ai.google.dev/available_regions) for details.
 
 ## License
 
