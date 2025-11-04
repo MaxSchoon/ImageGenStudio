@@ -19,78 +19,78 @@ const getLayoutDimensions = (layout: Layout): { width: number; height: number } 
 async function generateWithGoogle(prompt: string, layout: Layout): Promise<string> {
   const { width, height } = getLayoutDimensions(layout);
 
-  // Get API key from environment variables
-  const apiKey = process.env.GOOGLE_API_KEY || process.env.NANOBANANA_API_KEY;
-  
-  if (!apiKey) {
+    // Get API key from environment variables
+    const apiKey = process.env.GOOGLE_API_KEY || process.env.NANOBANANA_API_KEY;
+    
+    if (!apiKey) {
     throw new Error('GOOGLE_API_KEY is not configured. Please add it to your .env.local file.');
-  }
+    }
 
-  // Optional proxy URL to route requests through a server in a supported region
-  const proxyUrl = process.env.GOOGLE_PROXY_URL;
+    // Optional proxy URL to route requests through a server in a supported region
+    const proxyUrl = process.env.GOOGLE_PROXY_URL;
 
-  // Use Google Generative AI (Gemini) API for image generation
-  const model = process.env.GOOGLE_MODEL || 'gemini-2.0-flash-exp';
-  const apiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
-  
-  // Build request body according to Gemini API documentation
-  const layoutDescription = layout === 'landscape' 
-    ? 'Create a landscape image (16:9 aspect ratio, wide format).'
-    : layout === 'mobile'
-    ? 'Create a portrait image (9:16 aspect ratio, tall format).'
-    : 'Create a square image (1:1 aspect ratio).';
-  
-  const enhancedPrompt = `${prompt}\n\n${layoutDescription}`;
-  
-  const requestBody: any = {
-    contents: [
-      {
-        parts: [
-          {
-            text: enhancedPrompt,
-          },
-        ],
-      },
-    ],
-    generationConfig: {
+    // Use Google Generative AI (Gemini) API for image generation
+    const model = process.env.GOOGLE_MODEL || 'gemini-2.0-flash-exp';
+    const apiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+    
+    // Build request body according to Gemini API documentation
+    const layoutDescription = layout === 'landscape' 
+      ? 'Create a landscape image (16:9 aspect ratio, wide format).'
+      : layout === 'mobile'
+      ? 'Create a portrait image (9:16 aspect ratio, tall format).'
+      : 'Create a square image (1:1 aspect ratio).';
+    
+    const enhancedPrompt = `${prompt}\n\n${layoutDescription}`;
+    
+    const requestBody: any = {
+      contents: [
+        {
+          parts: [
+            {
+              text: enhancedPrompt,
+            },
+          ],
+        },
+      ],
+      generationConfig: {
       responseModalities: ['Text', 'Image'],
-    },
-  };
-  
-  console.log('Calling Google Generative AI API:', { 
-    endpoint: apiEndpoint, 
-    prompt, 
-    layout,
-    enhancedPrompt,
+      },
+    };
+    
+    console.log('Calling Google Generative AI API:', { 
+      endpoint: apiEndpoint, 
+      prompt, 
+      layout,
+      enhancedPrompt,
   });
   
   const response = await fetch(apiEndpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-goog-api-key': apiKey,
-    },
-    body: JSON.stringify(requestBody),
-  });
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-goog-api-key': apiKey,
+        },
+        body: JSON.stringify(requestBody),
+      });
 
   if (!response.ok) {
     const responseText = await response.text();
-    let errorMessage = responseText;
-    try {
-      const errorJson = JSON.parse(responseText);
-      errorMessage = errorJson.error?.message || JSON.stringify(errorJson);
-    } catch (e) {
-      // Keep text as is
+      let errorMessage = responseText;
+      try {
+        const errorJson = JSON.parse(responseText);
+        errorMessage = errorJson.error?.message || JSON.stringify(errorJson);
+      } catch (e) {
+        // Keep text as is
+      }
+      throw new Error(`Google Generative AI API error (${response.status}): ${errorMessage || response.statusText}`);
     }
-    throw new Error(`Google Generative AI API error (${response.status}): ${errorMessage || response.statusText}`);
-  }
 
   const data = await response.json();
   
-  if (data.error) {
-    throw new Error(`Google Generative AI API error: ${data.error.message || JSON.stringify(data.error)}`);
-  }
-  
+    if (data.error) {
+      throw new Error(`Google Generative AI API error: ${data.error.message || JSON.stringify(data.error)}`);
+    }
+    
   if (data.promptFeedback?.blockReason) {
     throw new Error(`Content was blocked: ${data.promptFeedback.blockReason}`);
   }
@@ -149,10 +149,10 @@ async function generateWithGrok(prompt: string, layout: Layout): Promise<string>
   // xAI API endpoint for chat completions (image generation uses the same endpoint)
   const apiEndpoint = 'https://api.x.ai/v1/chat/completions';
   
-  // Use grok-3 for image generation (per API error message)
-  // Alternative: grok-2-image-1212 is the dedicated image generation model
+  // Use grok-2-image-1212 for image generation (dedicated image generation model)
+  // grok-3 is for text, not image generation
   // You can override with GROK_MODEL environment variable
-  const model = process.env.GROK_MODEL || 'grok-3';
+  const model = process.env.GROK_MODEL || 'grok-2-image-1212';
   
   const requestBody = {
     model: model,
@@ -197,31 +197,40 @@ async function generateWithGrok(prompt: string, layout: Layout): Promise<string>
 
   const data = await response.json();
   
+  // Log the full response for debugging
+  console.log('xAI Grok API response:', JSON.stringify(data, null, 2));
+  
   if (data.error) {
     throw new Error(`xAI Grok API error: ${data.error.message || JSON.stringify(data.error)}`);
   }
   
   // Parse xAI response for image generation
-  // xAI typically returns images in choices[0].message.content
-  // The structure may be an array of image objects or base64 data
-  let imageUrl = null;
+  // Based on xAI documentation, images may be returned in various formats
+    let imageUrl = null;
   
+  // Check if response has choices array (standard chat completions format)
   if (data.choices && Array.isArray(data.choices) && data.choices.length > 0) {
     const choice = data.choices[0];
     
     // Check for message content with image data
     if (choice.message?.content) {
       const content = choice.message.content;
+      console.log('Content type:', typeof content, 'Is array:', Array.isArray(content));
       
       // If content is an array (for multimodal responses)
       if (Array.isArray(content)) {
+        console.log('Content array length:', content.length);
         for (const item of content) {
-          // Check for image data in the item
+          console.log('Content item:', JSON.stringify(item, null, 2).substring(0, 200));
+          
+          // Check for image_url type with URL
           if (item.type === 'image_url' && item.image_url?.url) {
             imageUrl = item.image_url.url;
+            console.log('Found image_url:', imageUrl.substring(0, 100));
             break;
           }
-          // Check for base64 image data
+          
+          // Check for image type with base64 data
           if (item.type === 'image' && item.image) {
             if (item.image.startsWith('data:')) {
               imageUrl = item.image;
@@ -229,39 +238,99 @@ async function generateWithGrok(prompt: string, layout: Layout): Promise<string>
               // Assume base64, add data URI prefix
               imageUrl = `data:image/png;base64,${item.image}`;
             }
+            console.log('Found image type, length:', imageUrl.length);
             break;
+          }
+          
+          // Check for text that might contain markdown image links
+          if (item.type === 'text' && typeof item.text === 'string') {
+            // Look for markdown image syntax: ![alt](url)
+            const markdownImageMatch = item.text.match(/!\[.*?\]\((.*?)\)/);
+            if (markdownImageMatch && markdownImageMatch[1]) {
+              imageUrl = markdownImageMatch[1];
+              console.log('Found markdown image URL:', imageUrl.substring(0, 100));
+              break;
+            }
+            // Look for direct URLs in text
+            const urlMatch = item.text.match(/https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp)/i);
+            if (urlMatch && urlMatch[0]) {
+              imageUrl = urlMatch[0];
+              console.log('Found URL in text:', imageUrl);
+              break;
+            }
           }
         }
       } 
-      // If content is a string that looks like a data URI
-      else if (typeof content === 'string' && content.startsWith('data:image')) {
-        imageUrl = content;
-      }
-      // If content is base64 (common in some APIs)
-      else if (typeof content === 'string' && content.length > 100) {
-        // Try to detect if it's base64 image data
-        imageUrl = `data:image/png;base64,${content}`;
-      }
-    }
-    
-    // Check for direct image data in the response
-    if (!imageUrl && data.images && Array.isArray(data.images) && data.images.length > 0) {
-      const firstImage = data.images[0];
-      if (firstImage.url) {
-        imageUrl = firstImage.url;
-      } else if (firstImage.data) {
-        const mimeType = firstImage.mimeType || 'image/png';
-        imageUrl = `data:${mimeType};base64,${firstImage.data}`;
+      // If content is a string
+      else if (typeof content === 'string') {
+        console.log('Content is string, length:', content.length);
+        console.log('Content preview:', content.substring(0, 200));
+        
+        // Check if it's a data URI
+        if (content.startsWith('data:image')) {
+          imageUrl = content;
+          console.log('Found data URI');
+        }
+        // Check for markdown image syntax
+        else {
+          const markdownImageMatch = content.match(/!\[.*?\]\((.*?)\)/);
+          if (markdownImageMatch && markdownImageMatch[1]) {
+            imageUrl = markdownImageMatch[1];
+            console.log('Found markdown image URL in string');
+          }
+          // Look for direct URLs
+          else {
+            const urlMatch = content.match(/https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp)/i);
+            if (urlMatch && urlMatch[0]) {
+              imageUrl = urlMatch[0];
+              console.log('Found URL in string');
+            }
+            // If it looks like base64 (long string without spaces)
+            else if (content.length > 100 && !content.includes(' ') && /^[A-Za-z0-9+/=]+$/.test(content)) {
+              imageUrl = `data:image/png;base64,${content}`;
+              console.log('Assumed base64 content');
+            }
+          }
+        }
       }
     }
   }
   
-  if (!imageUrl) {
+  // Check for direct image data in the response (alternative format)
+    if (!imageUrl && data.images && Array.isArray(data.images) && data.images.length > 0) {
+      const firstImage = data.images[0];
+    if (firstImage.url) {
+        imageUrl = firstImage.url;
+      console.log('Found image in images array (URL)');
+    } else if (firstImage.data) {
+      const mimeType = firstImage.mimeType || 'image/png';
+      imageUrl = `data:${mimeType};base64,${firstImage.data}`;
+      console.log('Found image in images array (base64)');
+    }
+  }
+  
+  // Check for direct image_url at top level
+  if (!imageUrl && data.image_url) {
+    imageUrl = data.image_url;
+    console.log('Found image_url at top level');
+  }
+    
+    if (!imageUrl) {
     console.error('xAI Grok API response structure:', JSON.stringify(data, null, 2));
     throw new Error('No image data found in xAI Grok API response. Response structure logged to server console. Please check xAI documentation: https://docs.x.ai/docs/models/grok-2-image-1212');
   }
   
-  console.log('Successfully extracted image from xAI Grok API response');
+  // Validate the image URL format
+  const isValidUrl = imageUrl.startsWith('http://') || 
+                     imageUrl.startsWith('https://') || 
+                     imageUrl.startsWith('data:image');
+  
+  if (!isValidUrl) {
+    console.error('Invalid image URL format:', imageUrl.substring(0, 100));
+    throw new Error(`Invalid image URL format returned from xAI API: ${imageUrl.substring(0, 100)}...`);
+  }
+  
+  console.log('Successfully extracted image from xAI Grok API response, URL length:', imageUrl.length);
   return imageUrl;
 }
 
