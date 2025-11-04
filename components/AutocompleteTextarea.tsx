@@ -303,7 +303,7 @@ export default function AutocompleteTextarea({
   }, []);
 
   return (
-    <div className={`relative w-full bg-white/90 backdrop-blur-sm rounded-lg overflow-hidden ${className}`}>
+    <div className={`relative w-full max-w-full min-w-0 bg-white/90 backdrop-blur-sm rounded-lg overflow-hidden ${className}`}>
       {/* Ghost text overlay - positioned behind textarea */}
       <div
         ref={ghostTextRef}
@@ -377,7 +377,7 @@ export default function AutocompleteTextarea({
         onKeyDown={handleKeyDown}
         onScroll={handleScroll}
         placeholder={isLoading ? 'Predicting...' : placeholder}
-        className="relative w-full box-border px-4 py-3 bg-transparent rounded-lg border border-black/20 text-black placeholder-black/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none overflow-hidden"
+        className="relative w-full min-w-0 box-border px-4 py-3 bg-transparent rounded-lg border border-black/20 text-black placeholder-black/50 focus:outline-none focus:border-blue-500 focus:border-2 resize-none overflow-hidden"
         rows={rows}
         style={{
           position: 'relative',
@@ -386,6 +386,9 @@ export default function AutocompleteTextarea({
           wordWrap: 'break-word',
           overflowWrap: 'break-word',
           overflow: 'hidden',
+          width: '100%',
+          maxWidth: '100%',
+          boxSizing: 'border-box',
         }}
       />
 
