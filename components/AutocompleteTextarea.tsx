@@ -25,6 +25,7 @@ export default function AutocompleteTextarea({
   const ghostTextRef = useRef<HTMLDivElement>(null);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const lastValueRef = useRef<string>('');
 
   // Fetch completion from API
   const fetchCompletion = useCallback(async (prompt: string) => {
@@ -88,6 +89,9 @@ export default function AutocompleteTextarea({
       clearTimeout(debounceTimerRef.current);
     }
 
+    // Update lastValueRef
+    lastValueRef.current = value;
+
     // Clear ghost text immediately when value changes
     setGhostText('');
 
@@ -107,29 +111,66 @@ export default function AutocompleteTextarea({
     };
   }, [value, fetchCompletion]);
 
-  // Handle Tab key to accept ghost text
+  // Accept ghost text function
+  const acceptGhostText = useCallback(() => {
+    if (!ghostText) return;
+    
+    const newValue = value + ghostText;
+    onChange(newValue);
+    setGhostText('');
+    
+    // Focus back on textarea and move cursor to end
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+        const length = newValue.length;
+        textareaRef.current.setSelectionRange(length, length);
+      }
+    }, 0);
+  }, [ghostText, value, onChange]);
+
+  // Handle Tab key to accept ghost text (desktop)
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Tab' && ghostText) {
       e.preventDefault();
-      // Accept ghost text
-      const newValue = value + ghostText;
-      onChange(newValue);
-      setGhostText('');
-      
-      // Focus back on textarea and move cursor to end
-      setTimeout(() => {
-        if (textareaRef.current) {
-          textareaRef.current.focus();
-          const length = newValue.length;
-          textareaRef.current.setSelectionRange(length, length);
-        }
-      }, 0);
+      acceptGhostText();
     } else if (e.key === 'Escape' && ghostText) {
       e.preventDefault();
       // Dismiss ghost text
       setGhostText('');
     }
-  }, [ghostText, value, onChange]);
+  }, [ghostText, acceptGhostText]);
+
+  // Handle onChange to detect triple space (mobile)
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newValue = e.target.value;
+    const oldValue = lastValueRef.current;
+    
+    // Check if user just typed three spaces in a row and ghost text exists
+    if (ghostText && newValue.endsWith('   ') && !oldValue.endsWith('   ')) {
+      // User typed three spaces - accept ghost text instead
+      // Remove the three spaces and add ghost text
+      const baseValue = newValue.slice(0, -3); // Remove the three spaces
+      const newValueWithGhost = baseValue + ghostText;
+      lastValueRef.current = newValueWithGhost;
+      onChange(newValueWithGhost);
+      setGhostText('');
+      
+      // Move cursor to end
+      setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.focus();
+          const length = newValueWithGhost.length;
+          textareaRef.current.setSelectionRange(length, length);
+        }
+      }, 0);
+      return;
+    }
+    
+    // Normal change
+    lastValueRef.current = newValue;
+    onChange(newValue);
+  }, [ghostText, onChange]);
 
   // Sync scroll between textarea and ghost text overlay
   const handleScroll = useCallback(() => {
@@ -179,7 +220,7 @@ export default function AutocompleteTextarea({
         ref={textareaRef}
         id={id}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={handleChange}
         onKeyDown={handleKeyDown}
         onScroll={handleScroll}
         placeholder={isLoading ? 'Predicting...' : placeholder}
@@ -191,6 +232,27 @@ export default function AutocompleteTextarea({
           caretColor: 'black', // Ensure cursor is visible
         }}
       />
+
+      {/* Accept button for mobile (shows when ghost text is available) */}
+      {ghostText && (
+        <button
+          type="button"
+          onClick={acceptGhostText}
+          className="absolute right-2 bottom-2 sm:hidden z-10 px-3 py-1.5 bg-blue-500 text-white text-xs font-medium rounded-md hover:bg-blue-600 active:bg-blue-700 shadow-sm transition-colors"
+          aria-label="Accept suggestion"
+        >
+          Accept
+        </button>
+      )}
+
+      {/* Desktop hint (hidden on mobile) */}
+      {ghostText && (
+        <div className="absolute right-2 bottom-2 hidden sm:block pointer-events-none z-10">
+          <span className="text-xs text-gray-500 bg-white/80 px-2 py-1 rounded">
+            Tab to accept
+          </span>
+        </div>
+      )}
 
       {/* Loading indicator (optional, subtle) */}
       {isLoading && ghostText === '' && (
