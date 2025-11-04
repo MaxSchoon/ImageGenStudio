@@ -377,7 +377,7 @@ export default function AutocompleteTextarea({
         onKeyDown={handleKeyDown}
         onScroll={handleScroll}
         placeholder={isLoading ? 'Predicting...' : placeholder}
-        className="relative w-full px-4 py-3 bg-transparent rounded-lg border border-black/20 text-black placeholder-black/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none overflow-hidden"
+        className="relative w-full box-border px-4 py-3 bg-transparent rounded-lg border border-black/20 text-black placeholder-black/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none overflow-hidden"
         rows={rows}
         style={{
           position: 'relative',
