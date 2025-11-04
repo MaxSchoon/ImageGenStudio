@@ -39,23 +39,28 @@ npm run dev
 
 ## Configuration
 
-### nanobanana API Setup
+### Google Generative AI API Setup
 
 1. Create a `.env.local` file in the root directory (if it doesn't exist):
    ```
-   NANOBANANA_API_KEY=your_api_key_here
+   GOOGLE_API_KEY=your_google_api_key_here
+   GOOGLE_MODEL=gemini-2.5-flash-image
    ```
+   - `GOOGLE_API_KEY`: Your Google API key (required) - Get it from [Google AI Studio](https://aistudio.google.com/app/apikey)
+   - `GOOGLE_MODEL`: The model name (optional, defaults to `gemini-2.5-flash-image` for image generation)
+   
+   **Image Generation**: The app uses Gemini's native image generation capabilities (aka "Nano Banana"). See the [documentation](https://ai.google.dev/gemini-api/docs/image-generation) for details.
 
-2. Update the API endpoint in `app/api/generate/route.ts` if needed:
-   ```typescript
-   const response = await fetch('YOUR_NANOBANANA_API_ENDPOINT', {
-     // ...
-   });
-   ```
+2. The API key and endpoint are automatically used from `.env.local`
 
-3. The API key is automatically used from `.env.local` via `process.env.NANOBANANA_API_KEY`
+3. Error handling: The app now includes detailed error messages that will help diagnose issues:
+   - Network errors will show connection issues
+   - API errors will display the status code and error message
+   - Missing configuration will prompt you to add the API key
 
-4. Adjust the response parsing in `app/api/generate/route.ts` based on your nanobanana API response format.
+4. Check the browser console and server logs for detailed error information if generation fails.
+
+5. Adjust the response parsing in `app/api/generate/route.ts` based on your nanobanana API response format if needed.
 
 ## Project Structure
 
