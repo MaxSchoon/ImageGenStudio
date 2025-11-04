@@ -1,6 +1,6 @@
 'use client';
 
-type Model = 'google' | 'grok';
+type Model = 'google' | 'grok' | 'huggingface';
 
 interface ModelSelectorProps {
   selectedModel: Model;
@@ -36,6 +36,19 @@ export default function ModelSelector({ selectedModel, onSelect }: ModelSelector
           `}
         >
           Grok
+        </button>
+        <button
+          onClick={() => onSelect('huggingface')}
+          className={`
+            px-6 py-2.5 rounded-full font-medium text-sm transition-all duration-300
+            ${
+              selectedModel === 'huggingface'
+                ? 'bg-white/90 backdrop-blur-sm text-blue-600 shadow-[0_0_20px_rgba(59,130,246,0.6)] border border-blue-400/50'
+                : 'text-gray-700 hover:text-gray-900 hover:bg-white/50'
+            }
+          `}
+        >
+          FLUX.1
         </button>
       </div>
     </div>

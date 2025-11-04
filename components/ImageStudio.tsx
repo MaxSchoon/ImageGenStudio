@@ -9,7 +9,7 @@ import AutocompleteTextarea from './AutocompleteTextarea';
 import { generateImage } from '@/lib/nanobanana';
 
 type Layout = 'landscape' | 'mobile' | 'square';
-type Model = 'google' | 'grok';
+type Model = 'google' | 'grok' | 'huggingface';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
