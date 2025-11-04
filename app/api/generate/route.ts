@@ -33,6 +33,20 @@ function parseImageData(dataUri: string): { mimeType: string; data: string } {
   };
 }
 
+// Helper function to map layout to Google Gemini API aspect ratio string
+const getAspectRatio = (layout: Layout): string => {
+  switch (layout) {
+    case 'landscape':
+      return '16:9';
+    case 'mobile':
+      return '9:16';
+    case 'square':
+      return '1:1';
+    default:
+      return '1:1';
+  }
+};
+
 async function generateWithGoogle(prompt: string, layout: Layout, imageData?: string): Promise<string> {
   const { width, height } = getLayoutDimensions(layout);
 
@@ -51,19 +65,10 @@ async function generateWithGoogle(prompt: string, layout: Layout, imageData?: st
     const model = process.env.GOOGLE_MODEL || (imageData ? 'gemini-2.5-flash-image' : 'gemini-2.0-flash-exp');
     const apiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
     
-    // Build request body according to Gemini API documentation
-    const layoutDescription = layout === 'landscape' 
-      ? 'Create a landscape image (16:9 aspect ratio, wide format).'
-      : layout === 'mobile'
-      ? 'Create a portrait image (9:16 aspect ratio, tall format).'
-      : 'Create a square image (1:1 aspect ratio).';
-    
     // When a reference image is provided, enhance the prompt to explicitly reference it
     const basePrompt = imageData 
       ? `Based on this reference image, ${prompt}`
       : prompt;
-    
-    const enhancedPrompt = `${basePrompt}\n\n${layoutDescription}`;
     
     // Build parts array - when imageData is provided, put image BEFORE text
     // This is the correct order for image-to-image generation according to Gemini API docs
@@ -82,8 +87,11 @@ async function generateWithGoogle(prompt: string, layout: Layout, imageData?: st
     
     // Add text prompt after image (or first if no image)
     parts.push({
-      text: enhancedPrompt,
+      text: basePrompt,
     });
+    
+    // Map layout to aspect ratio string for Google Gemini API
+    const aspectRatio = getAspectRatio(layout);
     
     const requestBody: any = {
       contents: [
@@ -92,7 +100,10 @@ async function generateWithGoogle(prompt: string, layout: Layout, imageData?: st
         },
       ],
       generationConfig: {
-      responseModalities: ['Text', 'Image'],
+        responseModalities: ['Text', 'Image'],
+        imageConfig: {
+          aspectRatio: aspectRatio,
+        },
       },
     };
     
@@ -100,7 +111,7 @@ async function generateWithGoogle(prompt: string, layout: Layout, imageData?: st
       endpoint: apiEndpoint, 
       prompt, 
       layout,
-      enhancedPrompt,
+      aspectRatio,
   });
   
   const response = await fetch(apiEndpoint, {
