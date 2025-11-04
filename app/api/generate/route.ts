@@ -134,9 +134,9 @@ async function generateWithGrok(prompt: string, layout: Layout): Promise<string>
   }
 
   // xAI Grok Image Generation API
-  // Documentation: https://docs.x.ai/docs/models/grok-2-image-1212
+  // Documentation: https://docs.x.ai/docs/api-reference#image-generations
+  // Must use /images/generations endpoint, not /chat/completions
   // Model: grok-2-image-1212 is the current image generation model
-  // The model grok-beta was deprecated on 2025-09-15
   
   const layoutDescription = layout === 'landscape' 
     ? 'Create a landscape image (16:9 aspect ratio, wide format).'
@@ -146,27 +146,27 @@ async function generateWithGrok(prompt: string, layout: Layout): Promise<string>
   
   const enhancedPrompt = `${prompt}\n\n${layoutDescription}`;
   
-  // xAI API endpoint for chat completions (image generation uses the same endpoint)
-  const apiEndpoint = 'https://api.x.ai/v1/chat/completions';
+  // xAI API endpoint for image generation
+  // Documentation: https://docs.x.ai/docs/api-reference#image-generations
+  const apiEndpoint = 'https://api.x.ai/v1/images/generations';
   
   // Use grok-2-image-1212 for image generation (dedicated image generation model)
-  // grok-3 is for text, not image generation
   // You can override with GROK_MODEL environment variable
   const model = process.env.GROK_MODEL || 'grok-2-image-1212';
   
-  const requestBody = {
+  // Request body format for /images/generations endpoint
+  // Based on xAI API documentation: https://docs.x.ai/docs/api-reference#image-generations
+  const requestBody: any = {
     model: model,
-    messages: [
-      {
-        role: 'user',
-        content: enhancedPrompt,
-      },
-    ],
-    // xAI image generation may support additional parameters
-    // Check documentation for size, quality, style parameters if needed
+    prompt: enhancedPrompt,
+    // Optional parameters (check documentation for supported options)
+    // n: number of images to generate (default: 1, max: 10)
+    // size: image size (if supported)
+    // quality: image quality (if supported)
+    // style: image style (if supported)
   };
   
-  console.log('Calling xAI Grok API:', { 
+  console.log('Calling xAI Grok Image Generation API:', { 
     endpoint: apiEndpoint, 
     model: model,
     prompt, 
@@ -198,126 +198,86 @@ async function generateWithGrok(prompt: string, layout: Layout): Promise<string>
   const data = await response.json();
   
   // Log the full response for debugging
-  console.log('xAI Grok API response:', JSON.stringify(data, null, 2));
+  console.log('xAI Grok Image Generation API response:', JSON.stringify(data, null, 2));
   
   if (data.error) {
     throw new Error(`xAI Grok API error: ${data.error.message || JSON.stringify(data.error)}`);
   }
   
-  // Parse xAI response for image generation
-  // Based on xAI documentation, images may be returned in various formats
-    let imageUrl = null;
+  // Parse xAI /images/generations response
+  // Based on xAI API documentation: https://docs.x.ai/docs/api-reference#image-generations
+  // Response format is typically: { data: [{ url: "...", b64_json: "..." }] }
+  let imageUrl = null;
   
-  // Check if response has choices array (standard chat completions format)
-  if (data.choices && Array.isArray(data.choices) && data.choices.length > 0) {
-    const choice = data.choices[0];
+  // Check for data array (standard format for image generation endpoints)
+  if (data.data && Array.isArray(data.data) && data.data.length > 0) {
+    const firstImage = data.data[0];
     
-    // Check for message content with image data
-    if (choice.message?.content) {
-      const content = choice.message.content;
-      console.log('Content type:', typeof content, 'Is array:', Array.isArray(content));
-      
-      // If content is an array (for multimodal responses)
-      if (Array.isArray(content)) {
-        console.log('Content array length:', content.length);
-        for (const item of content) {
-          console.log('Content item:', JSON.stringify(item, null, 2).substring(0, 200));
-          
-          // Check for image_url type with URL
-          if (item.type === 'image_url' && item.image_url?.url) {
-            imageUrl = item.image_url.url;
-            console.log('Found image_url:', imageUrl.substring(0, 100));
-            break;
-          }
-          
-          // Check for image type with base64 data
-          if (item.type === 'image' && item.image) {
-            if (item.image.startsWith('data:')) {
-              imageUrl = item.image;
-            } else {
-              // Assume base64, add data URI prefix
-              imageUrl = `data:image/png;base64,${item.image}`;
-            }
-            console.log('Found image type, length:', imageUrl.length);
-            break;
-          }
-          
-          // Check for text that might contain markdown image links
-          if (item.type === 'text' && typeof item.text === 'string') {
-            // Look for markdown image syntax: ![alt](url)
-            const markdownImageMatch = item.text.match(/!\[.*?\]\((.*?)\)/);
-            if (markdownImageMatch && markdownImageMatch[1]) {
-              imageUrl = markdownImageMatch[1];
-              console.log('Found markdown image URL:', imageUrl.substring(0, 100));
-              break;
-            }
-            // Look for direct URLs in text
-            const urlMatch = item.text.match(/https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp)/i);
-            if (urlMatch && urlMatch[0]) {
-              imageUrl = urlMatch[0];
-              console.log('Found URL in text:', imageUrl);
-              break;
-            }
-          }
+    // Check for URL first (preferred format)
+    if (firstImage.url) {
+      imageUrl = firstImage.url;
+      console.log('Found image URL in data array');
+    }
+    // Check for base64 JSON (alternative format)
+    else if (firstImage.b64_json) {
+      // Convert base64 to data URI
+      imageUrl = `data:image/jpeg;base64,${firstImage.b64_json}`;
+      console.log('Found base64 image in data array');
+    }
+    // Check for base64 field (some APIs use this)
+    else if (firstImage.base64) {
+      imageUrl = `data:image/jpeg;base64,${firstImage.base64}`;
+      console.log('Found base64 field in data array');
+    }
+    // Check for data field with base64
+    else if (firstImage.data) {
+      if (typeof firstImage.data === 'string') {
+        if (firstImage.data.startsWith('data:')) {
+          imageUrl = firstImage.data;
+        } else {
+          imageUrl = `data:image/jpeg;base64,${firstImage.data}`;
         }
-      } 
-      // If content is a string
-      else if (typeof content === 'string') {
-        console.log('Content is string, length:', content.length);
-        console.log('Content preview:', content.substring(0, 200));
-        
-        // Check if it's a data URI
-        if (content.startsWith('data:image')) {
-          imageUrl = content;
-          console.log('Found data URI');
-        }
-        // Check for markdown image syntax
-        else {
-          const markdownImageMatch = content.match(/!\[.*?\]\((.*?)\)/);
-          if (markdownImageMatch && markdownImageMatch[1]) {
-            imageUrl = markdownImageMatch[1];
-            console.log('Found markdown image URL in string');
-          }
-          // Look for direct URLs
-          else {
-            const urlMatch = content.match(/https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp)/i);
-            if (urlMatch && urlMatch[0]) {
-              imageUrl = urlMatch[0];
-              console.log('Found URL in string');
-            }
-            // If it looks like base64 (long string without spaces)
-            else if (content.length > 100 && !content.includes(' ') && /^[A-Za-z0-9+/=]+$/.test(content)) {
-              imageUrl = `data:image/png;base64,${content}`;
-              console.log('Assumed base64 content');
-            }
-          }
-        }
+        console.log('Found data field in data array');
       }
     }
   }
   
-  // Check for direct image data in the response (alternative format)
-    if (!imageUrl && data.images && Array.isArray(data.images) && data.images.length > 0) {
-      const firstImage = data.images[0];
+  // Check for images array (alternative format)
+  if (!imageUrl && data.images && Array.isArray(data.images) && data.images.length > 0) {
+    const firstImage = data.images[0];
     if (firstImage.url) {
-        imageUrl = firstImage.url;
-      console.log('Found image in images array (URL)');
-    } else if (firstImage.data) {
-      const mimeType = firstImage.mimeType || 'image/png';
-      imageUrl = `data:${mimeType};base64,${firstImage.data}`;
-      console.log('Found image in images array (base64)');
+      imageUrl = firstImage.url;
+      console.log('Found image URL in images array');
+    } else if (firstImage.b64_json) {
+      imageUrl = `data:image/jpeg;base64,${firstImage.b64_json}`;
+      console.log('Found base64 in images array');
+    } else if (typeof firstImage === 'string') {
+      // If it's a direct URL string
+      if (firstImage.startsWith('http://') || firstImage.startsWith('https://')) {
+        imageUrl = firstImage;
+        console.log('Found direct URL string in images array');
+      } else if (firstImage.startsWith('data:image')) {
+        imageUrl = firstImage;
+        console.log('Found data URI in images array');
+      }
     }
   }
   
-  // Check for direct image_url at top level
-  if (!imageUrl && data.image_url) {
-    imageUrl = data.image_url;
-    console.log('Found image_url at top level');
+  // Check for direct URL at top level
+  if (!imageUrl && data.url) {
+    imageUrl = data.url;
+    console.log('Found URL at top level');
   }
-    
-    if (!imageUrl) {
-    console.error('xAI Grok API response structure:', JSON.stringify(data, null, 2));
-    throw new Error('No image data found in xAI Grok API response. Response structure logged to server console. Please check xAI documentation: https://docs.x.ai/docs/models/grok-2-image-1212');
+  
+  // Check for direct base64 at top level
+  if (!imageUrl && data.b64_json) {
+    imageUrl = `data:image/jpeg;base64,${data.b64_json}`;
+    console.log('Found base64 at top level');
+  }
+  
+  if (!imageUrl) {
+    console.error('xAI Grok Image Generation API response structure:', JSON.stringify(data, null, 2));
+    throw new Error('No image data found in xAI Grok API response. Response structure logged to server console. Please check xAI documentation: https://docs.x.ai/docs/api-reference#image-generations');
   }
   
   // Validate the image URL format
@@ -330,7 +290,7 @@ async function generateWithGrok(prompt: string, layout: Layout): Promise<string>
     throw new Error(`Invalid image URL format returned from xAI API: ${imageUrl.substring(0, 100)}...`);
   }
   
-  console.log('Successfully extracted image from xAI Grok API response, URL length:', imageUrl.length);
+  console.log('Successfully extracted image from xAI Grok Image Generation API, URL length:', imageUrl.length);
   return imageUrl;
 }
 
