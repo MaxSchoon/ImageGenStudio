@@ -31,12 +31,23 @@ export async function generateImage(prompt: string, layout: Layout): Promise<str
     }
 
     const data = await response.json();
+    console.log('Client received API response:', {
+      hasImageUrl: !!data.imageUrl,
+      imageUrlLength: data.imageUrl?.length || 0,
+      imageUrlPreview: data.imageUrl?.substring(0, 50) || 'N/A',
+      responseKeys: Object.keys(data)
+    });
     
     if (!data.imageUrl) {
-      console.error('API response:', data);
-      throw new Error('Invalid response format from API. Expected imageUrl in response.');
+      console.error('API response missing imageUrl:', data);
+      // Check if there's a more specific error message
+      if (data.error) {
+        throw new Error(`Failed to generate image: ${data.error}`);
+      }
+      throw new Error('No image data found in API response. Please check the API documentation at https://ai.google.dev/gemini-api/docs/image-generation');
     }
 
+    console.log('Successfully returning imageUrl to component');
     return data.imageUrl;
   } catch (error) {
     console.error('Error generating image:', error);

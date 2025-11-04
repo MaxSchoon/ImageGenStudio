@@ -27,8 +27,15 @@ export default function ImageStudio() {
 
     try {
       const imageUrl = await generateImage(prompt, selectedLayout);
+      console.log('ImageStudio received imageUrl:', {
+        hasImageUrl: !!imageUrl,
+        imageUrlLength: imageUrl?.length || 0,
+        imageUrlPreview: imageUrl?.substring(0, 50) || 'N/A'
+      });
       setGeneratedImage(imageUrl);
+      console.log('ImageStudio set generatedImage state');
     } catch (err) {
+      console.error('ImageStudio error:', err);
       setError(err instanceof Error ? err.message : 'Failed to generate image');
     } finally {
       setIsLoading(false);
