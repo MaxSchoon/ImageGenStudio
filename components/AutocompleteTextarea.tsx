@@ -76,6 +76,15 @@ export default function AutocompleteTextarea({
       return;
     }
 
+    // Don't fetch completion if text ends with sentence-ending punctuation
+    const trimmedPrompt = prompt.trim();
+    const lastChar = trimmedPrompt[trimmedPrompt.length - 1];
+    if (lastChar === '.' || lastChar === '!' || lastChar === '?') {
+      setGhostText('');
+      setIsLoading(false);
+      return;
+    }
+
     // Create new abort controller
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
@@ -190,10 +199,20 @@ export default function AutocompleteTextarea({
     setGhostText('');
     setCorrectionText('');
 
-    // Set up debounced fetch for completion
-    debounceTimerRef.current = setTimeout(() => {
-      fetchCompletion(value);
-    }, 400); // 400ms debounce delay
+    // Check if text ends with sentence-ending punctuation - if so, don't fetch completion
+    const trimmedValue = value.trim();
+    const lastChar = trimmedValue[trimmedValue.length - 1];
+    const hasEndingPunctuation = lastChar === '.' || lastChar === '!' || lastChar === '?';
+
+    // Set up debounced fetch for completion (only if no ending punctuation)
+    if (!hasEndingPunctuation) {
+      debounceTimerRef.current = setTimeout(() => {
+        fetchCompletion(value);
+      }, 400); // 400ms debounce delay
+    } else {
+      // Clear any existing ghost text when ending punctuation is detected
+      setGhostText('');
+    }
 
     // Cleanup
     return () => {
@@ -384,7 +403,7 @@ export default function AutocompleteTextarea({
                 <>
                   <span
                     style={{
-                      color: 'rgba(34, 197, 94, 0.6)',
+                      color: 'rgba(20, 184, 166, 0.7)',
                       fontStyle: 'italic',
                       textDecoration: 'underline',
                     }}
@@ -462,7 +481,7 @@ export default function AutocompleteTextarea({
             <button
               type="button"
               onClick={acceptCorrection}
-              className="px-3 py-1.5 bg-green-500 text-white text-xs font-medium rounded-md hover:bg-green-600 active:bg-green-700 shadow-sm transition-colors"
+              className="px-3 py-1.5 bg-teal-600 text-white text-xs font-medium rounded-md hover:bg-teal-700 active:bg-teal-800 shadow-sm transition-colors"
               aria-label="Accept correction"
             >
               Correct
@@ -486,7 +505,7 @@ export default function AutocompleteTextarea({
       {isFocused && (
         <div className="absolute bottom-2 left-2 right-2 hidden sm:flex gap-2 pointer-events-none z-10">
           {correctionText && (
-            <span className="text-xs text-green-600 bg-white/80 px-2 py-1 rounded">
+            <span className="text-xs text-teal-600 bg-white/80 px-2 py-1 rounded">
               Tab to correct
             </span>
           )}
