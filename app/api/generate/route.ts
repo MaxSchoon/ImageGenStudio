@@ -400,7 +400,7 @@ async function generateWithHuggingFace(prompt: string, layout: Layout, imageData
 
   try {
     // Generate image using text-to-image API
-    const blob = await client.textToImage({
+    const result = await client.textToImage({
       provider: provider as any,
       model: model,
       inputs: prompt,
@@ -411,12 +411,25 @@ async function generateWithHuggingFace(prompt: string, layout: Layout, imageData
       },
     });
 
-    // Convert Blob to base64 data URI
-    const arrayBuffer = await blob.arrayBuffer();
-    const base64 = Buffer.from(arrayBuffer).toString('base64');
-    const imageUrl = `data:${blob.type};base64,${base64}`;
+    // Convert result to base64 data URI
+    // The result could be a Blob or already a buffer/string depending on the provider
+    let imageUrl: string;
 
-    console.log('Successfully generated image with Hugging Face, size:', blob.size, 'bytes');
+    if (result instanceof Blob) {
+      // If it's a Blob, convert to base64
+      const arrayBuffer = await result.arrayBuffer();
+      const base64 = Buffer.from(arrayBuffer).toString('base64');
+      imageUrl = `data:${result.type};base64,${base64}`;
+      console.log('Successfully generated image with Hugging Face (Blob), size:', result.size, 'bytes');
+    } else if (Buffer.isBuffer(result)) {
+      // If it's already a Buffer, convert directly
+      const base64 = result.toString('base64');
+      imageUrl = `data:image/jpeg;base64,${base64}`;
+      console.log('Successfully generated image with Hugging Face (Buffer), size:', result.length, 'bytes');
+    } else {
+      throw new Error('Unexpected response type from Hugging Face API');
+    }
+
     return imageUrl;
   } catch (error) {
     console.error('Hugging Face API error:', error);
