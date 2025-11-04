@@ -186,6 +186,8 @@ async function generateWithGrok(prompt: string, layout: Layout, imageData?: stri
   // Model: grok-2-image-1212 is the current image generation model
   // Note: Grok currently supports fixed 4:3 aspect ratio (1024x768), but we pass dimensions
   // in case the API supports them in future updates
+  // IMPORTANT: The /images/generations endpoint does NOT support reference images for image-to-image generation.
+  // Reference images are only supported for vision models via /chat/completions endpoint (for image understanding, not generation).
   
   const layoutDescription = layout === 'landscape' 
     ? 'Create a landscape image (16:9 aspect ratio, wide format).'
@@ -193,7 +195,13 @@ async function generateWithGrok(prompt: string, layout: Layout, imageData?: stri
     ? 'Create a portrait image (9:16 aspect ratio, tall format).'
     : 'Create a square image (1:1 aspect ratio).';
   
-  const enhancedPrompt = `${prompt}\n\n${layoutDescription}`;
+  // When a reference image is provided, enhance the prompt to explicitly reference it
+  // Note: Grok's /images/generations endpoint doesn't support reference images, so we enhance the text prompt instead
+  const basePrompt = imageData 
+    ? `Based on this reference image, ${prompt}`
+    : prompt;
+  
+  const enhancedPrompt = `${basePrompt}\n\n${layoutDescription}`;
   
   // xAI API endpoint for image generation
   // Documentation: https://docs.x.ai/docs/api-reference#image-generations
@@ -205,8 +213,8 @@ async function generateWithGrok(prompt: string, layout: Layout, imageData?: stri
   
   // Request body format for /images/generations endpoint
   // Based on xAI API documentation: https://docs.x.ai/docs/api-reference#image-generations
-  // Note: The /images/generations endpoint may not support input images directly
-  // If imageData is provided, we'll log a warning and continue with text-only prompt
+  // The /images/generations endpoint does NOT support reference images for image-to-image generation.
+  // We enhance the text prompt instead when a reference image is provided.
   const requestBody: any = {
     model: model,
     prompt: enhancedPrompt,
@@ -218,13 +226,10 @@ async function generateWithGrok(prompt: string, layout: Layout, imageData?: stri
     // style: image style (if supported)
   };
   
-  // Check if image input is supported by Grok API
-  // Based on current documentation, /images/generations may not support input images
-  // If imageData is provided, log a warning and continue with text-only
+  // Log a warning when reference image is provided
+  // Grok's /images/generations endpoint doesn't support reference images, so we enhance the prompt textually
   if (imageData) {
-    console.warn('Grok /images/generations endpoint may not support input images. Continuing with text-only prompt.');
-    // Note: If Grok API adds support for input images in the future, add it here
-    // For example: requestBody.image = imageData; or requestBody.image_url = imageData;
+    console.warn('Grok /images/generations endpoint does not support reference images. Enhancing prompt textually instead.');
   }
   
   console.log('Calling xAI Grok Image Generation API:', { 
