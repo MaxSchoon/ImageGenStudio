@@ -46,7 +46,7 @@ export default function ImageStudio() {
   };
 
   return (
-    <div className="min-h-screen bg-white p-8">
+    <div className="min-h-screen bg-white p-4 sm:p-8">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-4xl font-bold text-black mb-8 text-center">
           Image Generation Studio
@@ -57,9 +57,9 @@ export default function ImageStudio() {
           onSelect={setSelectedModel}
         />
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8">
           {/* Left Column: Image Prompt and Layout */}
-          <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-lg border border-black/10 p-8">
+          <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-lg border border-black/10 p-4 sm:p-8 overflow-hidden">
             <div className="mb-6">
               <label htmlFor="prompt" className="block text-black font-medium mb-2">
                 Image Prompt
