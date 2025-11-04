@@ -316,16 +316,36 @@ export default function AutocompleteTextarea({
   // Handle blur - clear suggestions
   const handleBlur = useCallback(() => {
     setIsFocused(false);
-    setGhostText('');
-    setCorrectionText('');
-    // Cancel any pending requests
+    // Cancel any pending requests first
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
     if (correctionAbortControllerRef.current) {
       correctionAbortControllerRef.current.abort();
     }
+    // Clear suggestions immediately
+    setGhostText('');
+    setCorrectionText('');
+    setIsLoading(false);
+    setIsCorrecting(false);
   }, []);
+
+  // Effect to clear suggestions when not focused
+  useEffect(() => {
+    if (!isFocused) {
+      setGhostText('');
+      setCorrectionText('');
+      // Cancel any pending requests
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      if (correctionAbortControllerRef.current) {
+        correctionAbortControllerRef.current.abort();
+      }
+      setIsLoading(false);
+      setIsCorrecting(false);
+    }
+  }, [isFocused]);
 
   // Sync scroll between textarea and ghost text overlay
   const handleScroll = useCallback(() => {
@@ -356,48 +376,54 @@ export default function AutocompleteTextarea({
             overflowWrap: 'break-word',
           }}
         >
-          {/* Show correction text if available, otherwise show user's text */}
           {/* Only show suggestions when focused */}
-          {isFocused && correctionText ? (
+          {isFocused ? (
             <>
-              {/* Show corrected text in green/italic */}
-              <span
-                style={{
-                  color: 'rgba(34, 197, 94, 0.6)',
-                  fontStyle: 'italic',
-                  textDecoration: 'underline',
-                }}
-              >
-                {correctionText}
-              </span>
-              {/* Show ghost text after correction if available */}
-              {ghostText && (
-                <span
-                  style={{
-                    color: 'rgba(0, 0, 0, 0.35)',
-                    fontStyle: 'italic',
-                  }}
-                >
-                  {ghostText}
-                </span>
+              {/* If correction is available, show corrected text instead of user's text */}
+              {correctionText ? (
+                <>
+                  <span
+                    style={{
+                      color: 'rgba(34, 197, 94, 0.6)',
+                      fontStyle: 'italic',
+                      textDecoration: 'underline',
+                    }}
+                  >
+                    {correctionText}
+                  </span>
+                  {/* Show ghost text after correction if available */}
+                  {ghostText && (
+                    <span
+                      style={{
+                        color: 'rgba(0, 0, 0, 0.35)',
+                        fontStyle: 'italic',
+                      }}
+                    >
+                      {ghostText}
+                    </span>
+                  )}
+                </>
+              ) : (
+                <>
+                  {/* Show user's text as transparent to match textarea */}
+                  <span>{value}</span>
+                  {/* Show ghost text completion if available */}
+                  {ghostText && (
+                    <span
+                      style={{
+                        color: 'rgba(0, 0, 0, 0.35)',
+                        fontStyle: 'italic',
+                      }}
+                    >
+                      {ghostText}
+                    </span>
+                  )}
+                </>
               )}
             </>
           ) : (
-            <>
-              {/* Show user's text as transparent to match textarea */}
-              <span>{value}</span>
-              {/* Show ghost text in gray/italic (only when focused) */}
-              {isFocused && ghostText && (
-                <span
-                  style={{
-                    color: 'rgba(0, 0, 0, 0.35)',
-                    fontStyle: 'italic',
-                  }}
-                >
-                  {ghostText}
-                </span>
-              )}
-            </>
+            /* When not focused, only show user's text (transparent) */
+            <span>{value}</span>
           )}
         </div>
       </div>
