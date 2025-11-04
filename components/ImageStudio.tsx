@@ -92,10 +92,10 @@ export default function ImageStudio() {
 
   const handleModelSelect = (model: Model) => {
     setSelectedModel(model);
-    // Clear uploaded image when switching to Hugging Face (FLUX.1) since it doesn't support reference images
-    if (model === 'huggingface' && uploadedImage) {
+    // Clear uploaded image when switching to Grok since it doesn't support reference images
+    if (model === 'grok' && uploadedImage) {
       handleClearImage();
-      setError('Reference images are not supported with FLUX.1. Switched to text-only generation.');
+      setError('Reference images are not supported with Grok. Switched to text-only generation.');
     }
   };
 
@@ -110,8 +110,8 @@ export default function ImageStudio() {
     setGeneratedImage(null);
 
     try {
-      // Don't pass uploadedImage to Hugging Face API as it doesn't support reference images
-      const imageDataToSend = selectedModel === 'huggingface' ? undefined : (uploadedImage || undefined);
+      // Don't pass uploadedImage to Grok API as it doesn't support reference images
+      const imageDataToSend = selectedModel === 'grok' ? undefined : (uploadedImage || undefined);
       const imageUrl = await generateImage(prompt, selectedLayout, selectedModel, imageDataToSend);
       console.log('ImageStudio received imageUrl:', {
         hasImageUrl: !!imageUrl,
@@ -166,13 +166,13 @@ export default function ImageStudio() {
             <div className="mb-6">
               <label className="block text-black font-medium mb-2">
                 Reference Image (Optional)
-                {selectedModel === 'huggingface' && (
+                {selectedModel === 'grok' && (
                   <span className="text-xs text-amber-600 ml-2 font-normal">
-                    (Not supported by FLUX.1)
+                    (Not supported by Grok)
                   </span>
                 )}
               </label>
-              {selectedModel === 'huggingface' ? (
+              {selectedModel === 'grok' ? (
                 <div className="border-2 border-dashed rounded-lg p-6 text-center bg-gray-50 border-gray-300">
                   <svg
                     className="w-12 h-12 text-gray-400 mb-2 mx-auto"
@@ -188,10 +188,10 @@ export default function ImageStudio() {
                     />
                   </svg>
                   <p className="text-sm text-gray-600 mb-1">
-                    Reference images not supported with FLUX.1
+                    Reference images not supported with Grok
                   </p>
                   <p className="text-xs text-gray-500">
-                    Switch to Google or Grok to use reference images
+                    Switch to Google or FLUX.1 to use reference images
                   </p>
                 </div>
               ) : !uploadedImage ? (
@@ -266,33 +266,6 @@ export default function ImageStudio() {
                       />
                     </svg>
                   </button>
-                </div>
-              )}
-              {uploadedImage && selectedModel === 'grok' && (
-                <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                  <div className="flex items-start">
-                    <svg
-                      className="w-5 h-5 text-amber-600 mt-0.5 mr-2 flex-shrink-0"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                      />
-                    </svg>
-                    <div className="flex-1">
-                      <p className="text-sm text-amber-800 font-medium">
-                        Note: Grok doesn't support reference images for image generation.
-                      </p>
-                      <p className="text-xs text-amber-700 mt-1">
-                        The reference image will be ignored. The prompt will be enhanced textually instead. Switch to Google model to use reference images.
-                      </p>
-                    </div>
-                  </div>
                 </div>
               )}
             </div>

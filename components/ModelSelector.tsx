@@ -48,7 +48,7 @@ export default function ModelSelector({ selectedModel, onSelect }: ModelSelector
             }
           `}
         >
-          FLUX.1
+          FLUX.1-Kontext
         </button>
       </div>
     </div>

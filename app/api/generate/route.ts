@@ -385,16 +385,9 @@ async function generateWithHuggingFace(prompt: string, layout: Layout, imageData
   // Initialize Hugging Face Inference Client
   const client = new InferenceClient(apiKey);
 
-  // Use FLUX.1-dev model with Nebius provider (fast inference)
-  const model = process.env.HF_MODEL || 'black-forest-labs/FLUX.1-dev';
-  const provider = process.env.HF_PROVIDER || 'nebius';
-
-  // IMPORTANT: Hugging Face text-to-image endpoint does NOT support reference images for image-to-image generation.
-  // Reference images are only supported by specific image-to-image models, not the text-to-image endpoint.
-  // We log a warning when a reference image is provided.
-  if (imageData) {
-    console.warn('Hugging Face text-to-image endpoint does not support reference images. Image-to-image generation is not available with FLUX.1-dev on this endpoint. The reference image will be ignored.');
-  }
+  // Use FLUX.1-Kontext-dev model with fal-ai provider (supports reference images)
+  const model = process.env.HF_MODEL || 'black-forest-labs/FLUX.1-Kontext-dev';
+  const provider = process.env.HF_PROVIDER || 'fal-ai';
 
   console.log('Calling Hugging Face Inference API:', {
     model,
@@ -407,17 +400,38 @@ async function generateWithHuggingFace(prompt: string, layout: Layout, imageData
   });
 
   try {
-    // Generate image using text-to-image API
-    const result = await client.textToImage({
-      provider: provider as any,
-      model: model,
-      inputs: prompt,
-      parameters: {
-        num_inference_steps: 5, // Fast generation (increase for higher quality)
-        width: width,
-        height: height,
-      },
-    });
+    let result: any;
+
+    // Use imageToImage API when reference image is provided (FLUX.1-Kontext-dev supports this)
+    if (imageData) {
+      // Convert data URI to Buffer for imageToImage API
+      const { data } = parseImageData(imageData);
+      const imageBuffer = Buffer.from(data, 'base64');
+
+      console.log('Using imageToImage API with reference image');
+      result = await client.imageToImage({
+        provider: provider as any,
+        model: model,
+        inputs: imageBuffer,
+        parameters: {
+          prompt: prompt,
+          // You can add more parameters here if needed
+        },
+      });
+    } else {
+      // Use textToImage API when no reference image
+      console.log('Using textToImage API without reference image');
+      result = await client.textToImage({
+        provider: provider as any,
+        model: model,
+        inputs: prompt,
+        parameters: {
+          num_inference_steps: 5, // Fast generation (increase for higher quality)
+          width: width,
+          height: height,
+        },
+      });
+    }
 
     // Convert result to base64 data URI
     // In Node.js, the Hugging Face client returns a Blob-like object or Buffer
