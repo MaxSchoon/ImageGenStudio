@@ -16,7 +16,24 @@ const getLayoutDimensions = (layout: Layout): { width: number; height: number } 
   }
 };
 
-async function generateWithGoogle(prompt: string, layout: Layout): Promise<string> {
+// Helper function to extract base64 data and mimeType from data URI
+function parseImageData(dataUri: string): { mimeType: string; data: string } {
+  // Data URI format: data:mimeType;base64,base64data
+  const match = dataUri.match(/^data:([^;]+);base64,(.+)$/);
+  if (match) {
+    return {
+      mimeType: match[1] || 'image/png',
+      data: match[2],
+    };
+  }
+  // If it's already just base64, default to PNG
+  return {
+    mimeType: 'image/png',
+    data: dataUri.replace(/^data:image\/[^;]+;base64,/, ''),
+  };
+}
+
+async function generateWithGoogle(prompt: string, layout: Layout, imageData?: string): Promise<string> {
   const { width, height } = getLayoutDimensions(layout);
 
     // Get API key from environment variables
@@ -42,14 +59,28 @@ async function generateWithGoogle(prompt: string, layout: Layout): Promise<strin
     
     const enhancedPrompt = `${prompt}\n\n${layoutDescription}`;
     
+    // Build parts array - start with text prompt
+    const parts: any[] = [
+      {
+        text: enhancedPrompt,
+      },
+    ];
+    
+    // Add image part if provided
+    if (imageData) {
+      const { mimeType, data } = parseImageData(imageData);
+      parts.push({
+        inlineData: {
+          mimeType: mimeType,
+          data: data,
+        },
+      });
+    }
+    
     const requestBody: any = {
       contents: [
         {
-          parts: [
-            {
-              text: enhancedPrompt,
-            },
-          ],
+          parts: parts,
         },
       ],
       generationConfig: {
@@ -126,7 +157,7 @@ async function generateWithGoogle(prompt: string, layout: Layout): Promise<strin
   return imageUrl;
 }
 
-async function generateWithGrok(prompt: string, layout: Layout): Promise<string> {
+async function generateWithGrok(prompt: string, layout: Layout, imageData?: string): Promise<string> {
   const { width, height } = getLayoutDimensions(layout);
   const apiKey = process.env.GROK_API_KEY || process.env.XAI_API_KEY;
   
@@ -159,6 +190,8 @@ async function generateWithGrok(prompt: string, layout: Layout): Promise<string>
   
   // Request body format for /images/generations endpoint
   // Based on xAI API documentation: https://docs.x.ai/docs/api-reference#image-generations
+  // Note: The /images/generations endpoint may not support input images directly
+  // If imageData is provided, we'll log a warning and continue with text-only prompt
   const requestBody: any = {
     model: model,
     prompt: enhancedPrompt,
@@ -169,6 +202,15 @@ async function generateWithGrok(prompt: string, layout: Layout): Promise<string>
     // quality: image quality (if supported)
     // style: image style (if supported)
   };
+  
+  // Check if image input is supported by Grok API
+  // Based on current documentation, /images/generations may not support input images
+  // If imageData is provided, log a warning and continue with text-only
+  if (imageData) {
+    console.warn('Grok /images/generations endpoint may not support input images. Continuing with text-only prompt.');
+    // Note: If Grok API adds support for input images in the future, add it here
+    // For example: requestBody.image = imageData; or requestBody.image_url = imageData;
+  }
   
   console.log('Calling xAI Grok Image Generation API:', { 
     endpoint: apiEndpoint, 
@@ -302,7 +344,7 @@ async function generateWithGrok(prompt: string, layout: Layout): Promise<string>
 
 export async function POST(request: NextRequest) {
   try {
-    const { prompt, layout, model = 'google' } = await request.json();
+    const { prompt, layout, model = 'google', imageData } = await request.json();
 
     if (!prompt || typeof prompt !== 'string') {
       return NextResponse.json(
@@ -318,15 +360,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate imageData if provided
+    if (imageData && typeof imageData !== 'string') {
+      return NextResponse.json(
+        { error: 'imageData must be a string (base64 data URI)' },
+        { status: 400 }
+      );
+    }
+
     const selectedModel: Model = model === 'grok' ? 'grok' : 'google';
     
     // Route to the appropriate model handler
     let imageUrl: string;
     try {
       if (selectedModel === 'grok') {
-        imageUrl = await generateWithGrok(prompt, layout);
+        imageUrl = await generateWithGrok(prompt, layout, imageData);
       } else {
-        imageUrl = await generateWithGoogle(prompt, layout);
+        imageUrl = await generateWithGoogle(prompt, layout, imageData);
       }
     } catch (error) {
       console.error(`Error generating image with ${selectedModel}:`, error);

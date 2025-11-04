@@ -1,18 +1,24 @@
 type Layout = 'landscape' | 'mobile' | 'square';
 type Model = 'google' | 'grok';
 
-export async function generateImage(prompt: string, layout: Layout, model: Model = 'google'): Promise<string> {
+export async function generateImage(prompt: string, layout: Layout, model: Model = 'google', imageData?: string): Promise<string> {
   try {
+    const requestBody: any = {
+      prompt,
+      layout,
+      model,
+    };
+    
+    if (imageData) {
+      requestBody.imageData = imageData;
+    }
+    
     const response = await fetch('/api/generate', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        prompt,
-        layout,
-        model,
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
