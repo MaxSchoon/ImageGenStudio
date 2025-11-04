@@ -389,6 +389,13 @@ async function generateWithHuggingFace(prompt: string, layout: Layout, imageData
   const model = process.env.HF_MODEL || 'black-forest-labs/FLUX.1-dev';
   const provider = process.env.HF_PROVIDER || 'nebius';
 
+  // IMPORTANT: Hugging Face text-to-image endpoint does NOT support reference images for image-to-image generation.
+  // Reference images are only supported by specific image-to-image models, not the text-to-image endpoint.
+  // We log a warning when a reference image is provided.
+  if (imageData) {
+    console.warn('Hugging Face text-to-image endpoint does not support reference images. Image-to-image generation is not available with FLUX.1-dev on this endpoint. The reference image will be ignored.');
+  }
+
   console.log('Calling Hugging Face Inference API:', {
     model,
     provider,
@@ -396,6 +403,7 @@ async function generateWithHuggingFace(prompt: string, layout: Layout, imageData
     layout,
     width,
     height,
+    hasReferenceImage: !!imageData,
   });
 
   try {
