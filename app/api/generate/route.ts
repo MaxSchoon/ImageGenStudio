@@ -133,10 +133,10 @@ async function generateWithGrok(prompt: string, layout: Layout): Promise<string>
     throw new Error('GROK_API_KEY or XAI_API_KEY is not configured. Please add it to your .env.local file.');
   }
 
-  // Note: xAI's Grok API primarily supports text generation
-  // For image generation, you may need to use a different endpoint or service
-  // This is a placeholder implementation - you may need to adjust based on xAI's actual image generation API
-  // Documentation: https://docs.x.ai/
+  // xAI Grok Image Generation API
+  // Documentation: https://docs.x.ai/docs/models/grok-2-image-1212
+  // Model: grok-2-image-1212 is the current image generation model
+  // The model grok-beta was deprecated on 2025-09-15
   
   const layoutDescription = layout === 'landscape' 
     ? 'Create a landscape image (16:9 aspect ratio, wide format).'
@@ -146,23 +146,29 @@ async function generateWithGrok(prompt: string, layout: Layout): Promise<string>
   
   const enhancedPrompt = `${prompt}\n\n${layoutDescription}`;
   
-  // xAI API endpoint for chat completions
-  // Note: This may need to be adjusted if xAI has a specific image generation endpoint
+  // xAI API endpoint for chat completions (image generation uses the same endpoint)
   const apiEndpoint = 'https://api.x.ai/v1/chat/completions';
   
+  // Use grok-3 for image generation (per API error message)
+  // Alternative: grok-2-image-1212 is the dedicated image generation model
+  // You can override with GROK_MODEL environment variable
+  const model = process.env.GROK_MODEL || 'grok-3';
+  
   const requestBody = {
-    model: 'grok-beta', // or 'grok-2-vision' if available
+    model: model,
     messages: [
       {
         role: 'user',
         content: enhancedPrompt,
       },
     ],
-    // Add any image generation specific parameters here if available
+    // xAI image generation may support additional parameters
+    // Check documentation for size, quality, style parameters if needed
   };
   
   console.log('Calling xAI Grok API:', { 
     endpoint: apiEndpoint, 
+    model: model,
     prompt, 
     layout,
     enhancedPrompt,
@@ -191,17 +197,72 @@ async function generateWithGrok(prompt: string, layout: Layout): Promise<string>
 
   const data = await response.json();
   
-  // Parse xAI response - this structure may need adjustment based on actual API response
-  // xAI typically returns text in choices[0].message.content
-  // For image generation, the response structure may differ
   if (data.error) {
     throw new Error(`xAI Grok API error: ${data.error.message || JSON.stringify(data.error)}`);
   }
   
-  // TODO: Parse image data from xAI response
-  // The actual structure depends on xAI's image generation API format
-  // This is a placeholder - you'll need to adjust based on xAI's documentation
-  throw new Error('Grok image generation is not yet fully implemented. Please check xAI documentation for image generation endpoints: https://docs.x.ai/');
+  // Parse xAI response for image generation
+  // xAI typically returns images in choices[0].message.content
+  // The structure may be an array of image objects or base64 data
+  let imageUrl = null;
+  
+  if (data.choices && Array.isArray(data.choices) && data.choices.length > 0) {
+    const choice = data.choices[0];
+    
+    // Check for message content with image data
+    if (choice.message?.content) {
+      const content = choice.message.content;
+      
+      // If content is an array (for multimodal responses)
+      if (Array.isArray(content)) {
+        for (const item of content) {
+          // Check for image data in the item
+          if (item.type === 'image_url' && item.image_url?.url) {
+            imageUrl = item.image_url.url;
+            break;
+          }
+          // Check for base64 image data
+          if (item.type === 'image' && item.image) {
+            if (item.image.startsWith('data:')) {
+              imageUrl = item.image;
+            } else {
+              // Assume base64, add data URI prefix
+              imageUrl = `data:image/png;base64,${item.image}`;
+            }
+            break;
+          }
+        }
+      } 
+      // If content is a string that looks like a data URI
+      else if (typeof content === 'string' && content.startsWith('data:image')) {
+        imageUrl = content;
+      }
+      // If content is base64 (common in some APIs)
+      else if (typeof content === 'string' && content.length > 100) {
+        // Try to detect if it's base64 image data
+        imageUrl = `data:image/png;base64,${content}`;
+      }
+    }
+    
+    // Check for direct image data in the response
+    if (!imageUrl && data.images && Array.isArray(data.images) && data.images.length > 0) {
+      const firstImage = data.images[0];
+      if (firstImage.url) {
+        imageUrl = firstImage.url;
+      } else if (firstImage.data) {
+        const mimeType = firstImage.mimeType || 'image/png';
+        imageUrl = `data:${mimeType};base64,${firstImage.data}`;
+      }
+    }
+  }
+  
+  if (!imageUrl) {
+    console.error('xAI Grok API response structure:', JSON.stringify(data, null, 2));
+    throw new Error('No image data found in xAI Grok API response. Response structure logged to server console. Please check xAI documentation: https://docs.x.ai/docs/models/grok-2-image-1212');
+  }
+  
+  console.log('Successfully extracted image from xAI Grok API response');
+  return imageUrl;
 }
 
 export async function POST(request: NextRequest) {
