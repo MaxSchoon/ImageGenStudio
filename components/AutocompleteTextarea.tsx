@@ -25,7 +25,6 @@ export default function AutocompleteTextarea({
   const ghostTextRef = useRef<HTMLDivElement>(null);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
-  const lastValueRef = useRef<string>('');
 
   // Auto-resize textarea based on content
   useEffect(() => {
@@ -119,9 +118,6 @@ export default function AutocompleteTextarea({
       clearTimeout(debounceTimerRef.current);
     }
 
-    // Update lastValueRef
-    lastValueRef.current = value;
-
     // Clear ghost text immediately when value changes
     setGhostText('');
 
@@ -171,36 +167,10 @@ export default function AutocompleteTextarea({
     }
   }, [ghostText, acceptGhostText]);
 
-  // Handle onChange to detect triple space (mobile)
+  // Handle onChange
   const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const newValue = e.target.value;
-    const oldValue = lastValueRef.current;
-    
-    // Check if user just typed three spaces in a row and ghost text exists
-    if (ghostText && newValue.endsWith('   ') && !oldValue.endsWith('   ')) {
-      // User typed three spaces - accept ghost text instead
-      // Remove the three spaces and add ghost text
-      const baseValue = newValue.slice(0, -3); // Remove the three spaces
-      const newValueWithGhost = baseValue + ghostText;
-      lastValueRef.current = newValueWithGhost;
-      onChange(newValueWithGhost);
-      setGhostText('');
-      
-      // Move cursor to end
-      setTimeout(() => {
-        if (textareaRef.current) {
-          textareaRef.current.focus();
-          const length = newValueWithGhost.length;
-          textareaRef.current.setSelectionRange(length, length);
-        }
-      }, 0);
-      return;
-    }
-    
-    // Normal change
-    lastValueRef.current = newValue;
-    onChange(newValue);
-  }, [ghostText, onChange]);
+    onChange(e.target.value);
+  }, [onChange]);
 
   // Sync scroll between textarea and ghost text overlay
   const handleScroll = useCallback(() => {
