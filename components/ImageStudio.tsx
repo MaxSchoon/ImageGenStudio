@@ -44,51 +44,66 @@ export default function ImageStudio() {
 
   return (
     <div className="min-h-screen bg-white p-8">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         <h1 className="text-4xl font-bold text-black mb-8 text-center">
           Image Generation Studio
         </h1>
 
-        <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-lg border border-black/10 p-8 mb-8">
-          <div className="mb-6">
-            <label htmlFor="prompt" className="block text-black font-medium mb-2">
-              Image Prompt
-            </label>
-            <textarea
-              id="prompt"
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Describe the image you want to generate..."
-              className="w-full px-4 py-3 bg-white/90 backdrop-blur-sm rounded-lg border border-black/20 text-black placeholder-black/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-              rows={4}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Left Column: Image Prompt and Layout */}
+          <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-lg border border-black/10 p-8">
+            <div className="mb-6">
+              <label htmlFor="prompt" className="block text-black font-medium mb-2">
+                Image Prompt
+              </label>
+              <textarea
+                id="prompt"
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                placeholder="Describe the image you want to generate..."
+                className="w-full px-4 py-3 bg-white/90 backdrop-blur-sm rounded-lg border border-black/20 text-black placeholder-black/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                rows={4}
+              />
+            </div>
+
+            <LayoutSelector
+              selectedLayout={selectedLayout}
+              onSelect={setSelectedLayout}
             />
+
+            <button
+              onClick={handleGenerate}
+              disabled={isLoading}
+              className="w-full mt-6 px-6 py-3 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 active:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {isLoading ? 'Generating...' : 'Generate Image'}
+            </button>
+
+            {error && (
+              <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+                {error}
+              </div>
+            )}
           </div>
 
-          <LayoutSelector
-            selectedLayout={selectedLayout}
-            onSelect={setSelectedLayout}
-          />
+          {/* Right Column: Generated Image */}
+          <div className="lg:sticky lg:top-8 lg:self-start">
+            {isLoading && <LoadingScreen />}
 
-          <button
-            onClick={handleGenerate}
-            disabled={isLoading}
-            className="w-full mt-6 px-6 py-3 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 active:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {isLoading ? 'Generating...' : 'Generate Image'}
-          </button>
+            {generatedImage && !isLoading && (
+              <ImagePreview imageUrl={generatedImage} layout={selectedLayout} />
+            )}
 
-          {error && (
-            <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
-              {error}
-            </div>
-          )}
+            {!generatedImage && !isLoading && (
+              <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-lg border border-black/10 p-8">
+                <h2 className="text-2xl font-bold text-black mb-6">Generated Image</h2>
+                <div className="aspect-square bg-gray-50 rounded-lg flex items-center justify-center border border-black/10">
+                  <p className="text-black/40">Your generated image will appear here</p>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
-
-        {isLoading && <LoadingScreen />}
-
-        {generatedImage && !isLoading && (
-          <ImagePreview imageUrl={generatedImage} layout={selectedLayout} />
-        )}
       </div>
     </div>
   );

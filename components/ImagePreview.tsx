@@ -52,12 +52,14 @@ export default function ImagePreview({ imageUrl, layout }: ImagePreviewProps) {
         >
           Download Image
         </a>
-        <button
-          onClick={() => window.open(imageUrl, '_blank')}
-          className="flex-1 px-6 py-3 bg-white/90 backdrop-blur-sm text-black font-semibold rounded-lg border border-black/20 hover:border-blue-300 transition-colors"
+        <a
+          href={imageUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex-1 px-6 py-3 bg-white/90 backdrop-blur-sm text-black font-semibold rounded-lg border border-black/20 hover:border-blue-300 transition-colors text-center"
         >
           Open in New Tab
-        </button>
+        </a>
       </div>
     </div>
   );
