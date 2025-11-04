@@ -136,7 +136,7 @@ export default function ImageStudio() {
               <label htmlFor="prompt" className="block text-black font-medium mb-2">
                 Image Prompt
                 <span className="text-xs text-gray-500 ml-2 font-normal">
-                  (Tab to accept • Mobile: tap Accept button)
+                  (Tab: correct • Tab Tab: complete • Mobile: tap buttons)
                 </span>
               </label>
               <AutocompleteTextarea

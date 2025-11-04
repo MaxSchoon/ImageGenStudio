@@ -47,7 +47,8 @@ async function generateWithGoogle(prompt: string, layout: Layout, imageData?: st
     const proxyUrl = process.env.GOOGLE_PROXY_URL;
 
     // Use Google Generative AI (Gemini) API for image generation
-    const model = process.env.GOOGLE_MODEL || 'gemini-2.0-flash-exp';
+    // For image-to-image generation, use a model that supports image generation
+    const model = process.env.GOOGLE_MODEL || (imageData ? 'gemini-2.5-flash-image' : 'gemini-2.0-flash-exp');
     const apiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
     
     // Build request body according to Gemini API documentation
@@ -57,16 +58,18 @@ async function generateWithGoogle(prompt: string, layout: Layout, imageData?: st
       ? 'Create a portrait image (9:16 aspect ratio, tall format).'
       : 'Create a square image (1:1 aspect ratio).';
     
-    const enhancedPrompt = `${prompt}\n\n${layoutDescription}`;
+    // When a reference image is provided, enhance the prompt to explicitly reference it
+    const basePrompt = imageData 
+      ? `Based on this reference image, ${prompt}`
+      : prompt;
     
-    // Build parts array - start with text prompt
-    const parts: any[] = [
-      {
-        text: enhancedPrompt,
-      },
-    ];
+    const enhancedPrompt = `${basePrompt}\n\n${layoutDescription}`;
     
-    // Add image part if provided
+    // Build parts array - when imageData is provided, put image BEFORE text
+    // This is the correct order for image-to-image generation according to Gemini API docs
+    const parts: any[] = [];
+    
+    // Add image part first if provided (correct order for reference images)
     if (imageData) {
       const { mimeType, data } = parseImageData(imageData);
       parts.push({
@@ -76,6 +79,11 @@ async function generateWithGoogle(prompt: string, layout: Layout, imageData?: st
         },
       });
     }
+    
+    // Add text prompt after image (or first if no image)
+    parts.push({
+      text: enhancedPrompt,
+    });
     
     const requestBody: any = {
       contents: [
@@ -118,6 +126,11 @@ async function generateWithGoogle(prompt: string, layout: Layout, imageData?: st
 
   const data = await response.json();
   
+    // Log the full response structure for debugging, especially when imageData is provided
+    if (imageData) {
+      console.log('Google Generative AI API response (with reference image):', JSON.stringify(data, null, 2));
+    }
+  
     if (data.error) {
       throw new Error(`Google Generative AI API error: ${data.error.message || JSON.stringify(data.error)}`);
     }
@@ -151,6 +164,8 @@ async function generateWithGoogle(prompt: string, layout: Layout, imageData?: st
   }
   
   if (!imageUrl) {
+    // Log the full response structure when image generation fails to help debug
+    console.error('No image data found in Google API response. Full response structure:', JSON.stringify(data, null, 2));
     throw new Error('No image data found in Google API response. Please check the API documentation at https://ai.google.dev/gemini-api/docs/image-generation');
   }
   

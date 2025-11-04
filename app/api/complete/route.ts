@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
-    const { prompt } = await request.json();
+    const { prompt, mode = 'complete' } = await request.json();
 
     if (!prompt || typeof prompt !== 'string') {
       return NextResponse.json(
@@ -10,6 +10,8 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    const isCorrection = mode === 'correct';
 
     // Get API key from environment variables
     const apiKey = process.env.GROK_API_KEY || process.env.XAI_API_KEY;
@@ -31,9 +33,13 @@ export async function POST(request: NextRequest) {
     // You can override with GROK_COMPLETION_MODEL environment variable
     const model = process.env.GROK_COMPLETION_MODEL || 'grok-2-1212';
     
-    // Create a system prompt that encourages concise completion suggestions
-    // for image prompt generation
-    const systemPrompt = `You are a helpful assistant that completes image generation prompts. 
+    // Create different system prompts for completion vs correction
+    const systemPrompt = isCorrection
+      ? `You are a helpful assistant that corrects spelling and grammar in image generation prompts. 
+Fix any spelling mistakes, grammar errors, and improve the clarity of the prompt while keeping the original meaning and style.
+Only correct the text that was provided - do not add new content or complete the sentence.
+Return only the corrected version of the entire prompt.`
+      : `You are a helpful assistant that completes image generation prompts. 
 Provide concise, natural completions that continue the user's prompt in a way that would be useful for image generation.
 Keep suggestions brief (typically 1-10 words) and relevant to image generation. 
 Only complete the thought, don't add new unrelated ideas.`;
@@ -50,14 +56,15 @@ Only complete the thought, don't add new unrelated ideas.`;
           content: prompt,
         },
       ],
-      max_tokens: 20, // Keep completions short for ghost text
-      temperature: 0.7, // Balance between creativity and consistency
+      max_tokens: isCorrection ? 200 : 20, // More tokens for full correction, less for completion
+      temperature: isCorrection ? 0.3 : 0.7, // Lower temperature for corrections (more consistent)
       stream: false, // We want a single completion response
     };
 
-    console.log('Calling xAI Grok Chat Completions API for text completion:', { 
+    console.log(`Calling xAI Grok Chat Completions API for text ${isCorrection ? 'correction' : 'completion'}:`, { 
       endpoint: apiEndpoint, 
       model: model,
+      mode: isCorrection ? 'correct' : 'complete',
       promptLength: prompt.length,
       promptPreview: prompt.substring(0, 100),
     });
@@ -98,12 +105,15 @@ Only complete the thought, don't add new unrelated ideas.`;
       }
     }
 
-    console.log('Grok completion response:', { 
+    console.log(`Grok ${isCorrection ? 'correction' : 'completion'} response:`, { 
       completionLength: completion.length,
       completionPreview: completion.substring(0, 50),
     });
 
-    return NextResponse.json({ completion });
+    return NextResponse.json({ 
+      completion,
+      mode: isCorrection ? 'correct' : 'complete'
+    });
   } catch (error) {
     console.error('Error getting text completion:', error);
     
