@@ -24,8 +24,11 @@ npm install
 ```
 
 2. Configure nanobanana API:
-   - Update the API endpoint in `app/api/generate/route.ts`
-   - Add your API key if required (uncomment the Authorization header)
+   - Add your API key to `.env.local` file:
+     ```
+     NANOBANANA_API_KEY=your_api_key_here
+     ```
+   - Update the API endpoint in `app/api/generate/route.ts` if needed
 
 3. Run the development server:
 ```bash
@@ -38,27 +41,21 @@ npm run dev
 
 ### nanobanana API Setup
 
-1. Update the API endpoint in `app/api/generate/route.ts`:
+1. Create a `.env.local` file in the root directory (if it doesn't exist):
+   ```
+   NANOBANANA_API_KEY=your_api_key_here
+   ```
+
+2. Update the API endpoint in `app/api/generate/route.ts` if needed:
    ```typescript
    const response = await fetch('YOUR_NANOBANANA_API_ENDPOINT', {
      // ...
    });
    ```
 
-2. If authentication is required, add your API key:
-   ```typescript
-   headers: {
-     'Content-Type': 'application/json',
-     'Authorization': `Bearer ${process.env.NANOBANANA_API_KEY}`,
-   },
-   ```
+3. The API key is automatically used from `.env.local` via `process.env.NANOBANANA_API_KEY`
 
-3. Create a `.env.local` file:
-   ```
-   NANOBANANA_API_KEY=your_api_key_here
-   ```
-
-4. Adjust the response parsing based on your nanobanana API response format.
+4. Adjust the response parsing in `app/api/generate/route.ts` based on your nanobanana API response format.
 
 ## Project Structure
 

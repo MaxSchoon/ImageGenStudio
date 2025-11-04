@@ -28,14 +28,22 @@ export async function POST(request: NextRequest) {
 
     const { width, height } = getLayoutDimensions(layout || 'square');
 
+    // Get API key from environment variables
+    const apiKey = process.env.NANOBANANA_API_KEY;
+    
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: 'NANOBANANA_API_KEY is not configured. Please add it to your .env.local file.' },
+        { status: 500 }
+      );
+    }
+
     // Call nanobanana API
-    // Replace with actual nanobanana API endpoint and authentication
     const response = await fetch('https://api.nanobanana.com/generate', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        // Add API key if required
-        // 'Authorization': `Bearer ${process.env.NANOBANANA_API_KEY}`,
+        'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
         prompt,
