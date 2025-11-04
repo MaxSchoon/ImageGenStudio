@@ -1,15 +1,17 @@
 # Image Generation Studio
 
-A modern image generation application built with Next.js, React, and Tailwind CSS. Generate images using nanobanana with a beautiful glass morphism UI.
+A modern image generation application built with Next.js, React, and Tailwind CSS. Generate images using Google Gemini or xAI Grok with a beautiful glass morphism UI.
 
 ## Features
 
 - 🎨 Modern glass morphism design
 - 📱 Multiple layout options (Landscape, Mobile, Square)
-- ⚡ Fast image generation using Google Gemini or Grok
+- ⚡ Fast image generation using Google Gemini or xAI Grok
 - 🤖 Model switching between Google and Grok
 - 🖼️ Image preview and download
 - ⏳ Beautiful loading screen
+- ✍️ AI-powered text autocomplete and spell correction
+- 🖼️ Image-to-image generation (upload reference images)
 
 ## Getting Started
 
@@ -19,17 +21,12 @@ A modern image generation application built with Next.js, React, and Tailwind CS
 
 ### Installation
 
-1. Install dependencies:
+1. Clone the repository and install dependencies:
 ```bash
 npm install
 ```
 
-2. Configure nanobanana API:
-   - Add your API key to `.env.local` file:
-     ```
-     NANOBANANA_API_KEY=your_api_key_here
-     ```
-   - Update the API endpoint in `app/api/generate/route.ts` if needed
+2. Configure API keys (see [Configuration](#configuration) section below)
 
 3. Run the development server:
 ```bash
@@ -40,50 +37,51 @@ npm run dev
 
 ## Configuration
 
-### API Setup
+### Environment Variables
+
+Create a `.env.local` file in the root directory with the following variables:
 
 #### Google Generative AI API Setup
 
-1. Create a `.env.local` file in the root directory (if it doesn't exist):
-   ```
-   GOOGLE_API_KEY=your_google_api_key_here
-   GOOGLE_MODEL=gemini-2.5-flash-image
-   ```
-   - `GOOGLE_API_KEY`: Your Google API key (required) - Get it from [Google AI Studio](https://aistudio.google.com/app/apikey)
-   - `GOOGLE_MODEL`: The model name (optional, defaults to `gemini-2.5-flash-image` for image generation)
-   
-   **Image Generation**: The app uses Gemini's native image generation capabilities (aka "Nano Banana"). See the [documentation](https://ai.google.dev/gemini-api/docs/image-generation) for details.
+```bash
+GOOGLE_API_KEY=your_google_api_key_here
+GOOGLE_MODEL=gemini-2.5-flash-image  # Optional, defaults to gemini-2.5-flash-image for image generation
+```
 
-   **⚠️ Geographic Restrictions**: If you get "Image generation is not available in your country" error, you need to deploy the app to a server in a supported region (like Vercel, which runs in US regions by default). The restriction is based on the server's location, not your local machine. See [Deployment](#deployment) section below.
+- **GOOGLE_API_KEY**: Your Google API key (required) - Get it from [Google AI Studio](https://aistudio.google.com/app/apikey)
+- **GOOGLE_MODEL**: The model name (optional, defaults to `gemini-2.5-flash-image` for image generation)
 
-#### Grok (xAI) API Setup
+**Image Generation**: The app uses Gemini's native image generation capabilities. See the [documentation](https://ai.google.dev/gemini-api/docs/image-generation) for details.
 
-1. **Obtain a Grok API Key**:
-   - Sign up for an account at [x.ai](https://x.ai) or visit the [xAI Developer Console](https://console.x.ai)
-   - Navigate to API Keys section in your account settings
-   - Generate a new API key
+**⚠️ Geographic Restrictions**: If you get "Image generation is not available in your country" error, you need to deploy the app to a server in a supported region (like Vercel, which runs in US regions by default). The restriction is based on the server's location, not your local machine. See [Deployment](#deployment) section below.
 
-2. **Add to `.env.local`**:
-   ```
-   GROK_API_KEY=your_grok_api_key_here
-   ```
-   Or alternatively:
-   ```
-   XAI_API_KEY=your_grok_api_key_here
-   ```
-   
-   Both `GROK_API_KEY` and `XAI_API_KEY` are supported for compatibility.
+#### xAI Grok API Setup
 
-3. **API Documentation**: 
-   - Official xAI API documentation: [https://docs.x.ai/](https://docs.x.ai/)
-   - Note: xAI's Grok API primarily supports text generation. For image generation, you may need to check xAI's latest documentation for image generation endpoints or capabilities.
+```bash
+GROK_API_KEY=your_grok_api_key_here
+# OR alternatively:
+XAI_API_KEY=your_grok_api_key_here
 
-4. **Error handling**: The app includes detailed error messages:
-   - Network errors will show connection issues
-   - API errors will display the status code and error message
-   - Missing configuration will prompt you to add the API key
+# Optional: Customize models
+GROK_MODEL=grok-2-image-1212  # Image generation model (default: grok-2-image-1212)
+GROK_COMPLETION_MODEL=grok-2-1212  # Text completion model (default: grok-2-1212)
+```
 
-5. Check the browser console and server logs for detailed error information if generation fails.
+- **GROK_API_KEY** or **XAI_API_KEY**: Your Grok API key (required) - Both are supported for compatibility
+- **GROK_MODEL**: Image generation model (optional, defaults to `grok-2-image-1212`)
+- **GROK_COMPLETION_MODEL**: Text completion model (optional, defaults to `grok-2-1212`)
+
+**Obtaining a Grok API Key**:
+- Sign up for an account at [x.ai](https://x.ai) or visit the [xAI Developer Console](https://console.x.ai)
+- Navigate to API Keys section in your account settings
+- Generate a new API key
+
+**API Documentation**: 
+- Official xAI API documentation: [https://docs.x.ai/](https://docs.x.ai/)
+- Image generation endpoint: [https://docs.x.ai/docs/api-reference#image-generations](https://docs.x.ai/docs/api-reference#image-generations)
+- Chat completions endpoint: [https://docs.x.ai/docs/api-reference#chat-completions](https://docs.x.ai/docs/api-reference#chat-completions)
+
+**Note**: Grok's image generation API supports fixed dimensions, but the app will pass your selected layout dimensions in case the API supports them in future updates. Reference images are not directly supported by Grok's image generation endpoint; the app enhances the text prompt instead.
 
 ## Project Structure
 
@@ -91,22 +89,45 @@ npm run dev
 ImageGen/
 ├── app/
 │   ├── api/
+│   │   ├── complete/
+│   │   │   └── route.ts      # API route for text autocomplete/correction
 │   │   └── generate/
 │   │       └── route.ts      # API route for image generation
 │   ├── globals.css           # Global styles
 │   ├── layout.tsx            # Root layout
 │   └── page.tsx              # Home page
 ├── components/
+│   ├── AutocompleteTextarea.tsx  # Textarea with AI autocomplete and correction
+│   ├── ImagePreview.tsx      # Image preview component
 │   ├── ImageStudio.tsx       # Main studio component
-│   ├── ModelSelector.tsx    # Model selection UI (Google/Grok)
-│   ├── LayoutSelector.tsx   # Layout selection UI
-│   ├── LoadingScreen.tsx    # Loading state component
-│   └── ImagePreview.tsx     # Image preview component
+│   ├── LayoutSelector.tsx    # Layout selection UI
+│   ├── LoadingScreen.tsx     # Loading state component
+│   └── ModelSelector.tsx    # Model selection UI (Google/Grok)
 └── lib/
-    └── nanobanana.ts        # Image generation client
+    └── nanobanana.ts         # Image generation client wrapper
 ```
 
+## Features in Detail
+
+### Image Generation
+
+- **Text-to-Image**: Generate images from text prompts
+- **Image-to-Image**: Upload a reference image to guide the generation
+- **Layout Options**: Choose from Landscape (16:9), Mobile (9:16), or Square (1:1) aspect ratios
+- **Model Selection**: Switch between Google Gemini and xAI Grok models
+
+### AI Text Autocomplete
+
+The app includes intelligent text completion powered by Grok:
+- **Autocomplete**: As you type, the AI suggests completions (shown as ghost text)
+- **Spell Correction**: Automatically corrects spelling and grammar errors
+- **Tab to Accept**: Press Tab to accept the suggested completion or correction
+
+**Note**: The autocomplete feature requires a Grok API key to be configured.
+
 ## Build
+
+Build the application for production:
 
 ```bash
 npm run build
@@ -133,8 +154,10 @@ To bypass geographic restrictions with Google's image generation API, deploy you
    - Import your GitHub repository
    - Add your environment variables:
      - `GOOGLE_API_KEY`: Your Google API key (required for Google model)
-     - `GOOGLE_MODEL`: `gemini-2.0-flash-exp` (optional)
+     - `GOOGLE_MODEL`: `gemini-2.5-flash-image` (optional)
      - `GROK_API_KEY` or `XAI_API_KEY`: Your Grok API key (required for Grok model)
+     - `GROK_MODEL`: `grok-2-image-1212` (optional)
+     - `GROK_COMPLETION_MODEL`: `grok-2-1212` (optional)
    - Deploy
 
 3. **Why Vercel works**: Vercel runs your server-side API routes on infrastructure in supported regions (US by default), which bypasses the geographic restriction.
@@ -148,7 +171,14 @@ You can also deploy to:
 
 Just make sure your server is located in a region where Google's image generation API is available. See [Google's available regions](https://ai.google.dev/available_regions) for details.
 
+## Error Handling
+
+The app includes comprehensive error handling:
+- Network errors show connection issues
+- API errors display the status code and error message
+- Missing configuration prompts you to add the API key
+- Check the browser console and server logs for detailed error information if generation fails
+
 ## License
 
 ISC
-
