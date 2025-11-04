@@ -313,8 +313,18 @@ export default function AutocompleteTextarea({
     setIsFocused(true);
   }, []);
 
-  // Handle blur - clear suggestions
-  const handleBlur = useCallback(() => {
+  // Handle blur - clear suggestions (but not if clicking on buttons)
+  const handleBlur = useCallback((e: React.FocusEvent<HTMLTextAreaElement>) => {
+    // Check if the blur is caused by clicking on one of our buttons
+    const relatedTarget = e.relatedTarget as HTMLElement;
+    if (relatedTarget && (
+      relatedTarget.closest('button[aria-label="Accept suggestion"]') ||
+      relatedTarget.closest('button[aria-label="Accept correction"]')
+    )) {
+      // Don't clear suggestions if clicking on buttons
+      return;
+    }
+
     setIsFocused(false);
     // Cancel any pending requests first
     if (abortControllerRef.current) {
@@ -461,7 +471,16 @@ export default function AutocompleteTextarea({
           {correctionText && (
             <button
               type="button"
-              onClick={acceptCorrection}
+              onMouseDown={(e) => {
+                // Prevent textarea blur when clicking button
+                e.preventDefault();
+                acceptCorrection();
+              }}
+              onTouchStart={(e) => {
+                // Prevent textarea blur when tapping button on mobile
+                e.preventDefault();
+                acceptCorrection();
+              }}
               className="px-3 py-1.5 bg-teal-600 text-white text-xs font-medium rounded-md hover:bg-teal-700 active:bg-teal-800 shadow-sm transition-colors"
               aria-label="Accept correction"
             >
@@ -472,7 +491,16 @@ export default function AutocompleteTextarea({
           {ghostText && (
             <button
               type="button"
-              onClick={acceptGhostText}
+              onMouseDown={(e) => {
+                // Prevent textarea blur when clicking button
+                e.preventDefault();
+                acceptGhostText();
+              }}
+              onTouchStart={(e) => {
+                // Prevent textarea blur when tapping button on mobile
+                e.preventDefault();
+                acceptGhostText();
+              }}
               className="ml-auto px-3 py-1.5 bg-blue-500 text-white text-xs font-medium rounded-md hover:bg-blue-600 active:bg-blue-700 shadow-sm transition-colors"
               aria-label="Accept suggestion"
             >
