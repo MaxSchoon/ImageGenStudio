@@ -29,8 +29,6 @@ export default function AutocompleteTextarea({
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const correctionAbortControllerRef = useRef<AbortController | null>(null);
-  const tabPressTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const lastTabPressTimeRef = useRef<number>(0);
 
   // Auto-resize textarea based on content
   useEffect(() => {
@@ -283,36 +281,19 @@ export default function AutocompleteTextarea({
     }, 0);
   }, [correctionText, onChange]);
 
-  // Handle Tab key - single Tab for correction, double Tab for completion
+  // Handle keyboard shortcuts
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Tab') {
-      const now = Date.now();
-      const timeSinceLastTab = now - lastTabPressTimeRef.current;
-      
-      // If Tab pressed within 300ms of previous Tab, it's a double Tab (completion)
-      if (timeSinceLastTab < 300 && tabPressTimerRef.current) {
+      // Tab - accept correction
+      if (correctionText) {
         e.preventDefault();
-        clearTimeout(tabPressTimerRef.current);
-        lastTabPressTimeRef.current = 0;
-        
-        // Double Tab - accept completion
-        if (ghostText) {
-          acceptGhostText();
-        }
-      } else {
-        // Single Tab - only accept correction (not completion)
+        acceptCorrection();
+      }
+    } else if (e.key === '=' && !e.shiftKey) {
+      // = key - accept ghost text completion
+      if (ghostText) {
         e.preventDefault();
-        lastTabPressTimeRef.current = now;
-        
-        if (correctionText) {
-          // Accept correction on single Tab
-          acceptCorrection();
-        }
-        
-        // Set up timer to detect double Tab (for completion)
-        tabPressTimerRef.current = setTimeout(() => {
-          lastTabPressTimeRef.current = 0;
-        }, 300);
+        acceptGhostText();
       }
     } else if (e.key === 'Escape') {
       e.preventDefault();
@@ -511,7 +492,7 @@ export default function AutocompleteTextarea({
           )}
           {ghostText && (
             <span className="ml-auto text-xs text-gray-500 bg-white/80 px-2 py-1 rounded">
-              Tab to accept • Tab Tab to complete
+              = to accept
             </span>
           )}
         </div>
