@@ -9,7 +9,7 @@ import AutocompleteTextarea from './AutocompleteTextarea';
 import { generateImage } from '@/lib/nanobanana';
 
 type Layout = 'landscape' | 'mobile' | 'square';
-type Model = 'google' | 'grok';
+type Model = 'google' | 'grok' | 'huggingface';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
@@ -90,6 +90,15 @@ export default function ImageStudio() {
     setError(null);
   };
 
+  const handleModelSelect = (model: Model) => {
+    setSelectedModel(model);
+    // Clear uploaded image when switching to Hugging Face (FLUX.1) since it doesn't support reference images
+    if (model === 'huggingface' && uploadedImage) {
+      handleClearImage();
+      setError('Reference images are not supported with FLUX.1. Switched to text-only generation.');
+    }
+  };
+
   const handleGenerate = async () => {
     if (!prompt.trim()) {
       setError('Please enter a prompt');
@@ -101,7 +110,9 @@ export default function ImageStudio() {
     setGeneratedImage(null);
 
     try {
-      const imageUrl = await generateImage(prompt, selectedLayout, selectedModel, uploadedImage || undefined);
+      // Don't pass uploadedImage to Hugging Face API as it doesn't support reference images
+      const imageDataToSend = selectedModel === 'huggingface' ? undefined : (uploadedImage || undefined);
+      const imageUrl = await generateImage(prompt, selectedLayout, selectedModel, imageDataToSend);
       console.log('ImageStudio received imageUrl:', {
         hasImageUrl: !!imageUrl,
         imageUrlLength: imageUrl?.length || 0,
@@ -129,7 +140,7 @@ export default function ImageStudio() {
 
         <ModelSelector
           selectedModel={selectedModel}
-          onSelect={setSelectedModel}
+          onSelect={handleModelSelect}
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8">
@@ -155,8 +166,35 @@ export default function ImageStudio() {
             <div className="mb-6">
               <label className="block text-black font-medium mb-2">
                 Reference Image (Optional)
+                {selectedModel === 'huggingface' && (
+                  <span className="text-xs text-amber-600 ml-2 font-normal">
+                    (Not supported by FLUX.1)
+                  </span>
+                )}
               </label>
-              {!uploadedImage ? (
+              {selectedModel === 'huggingface' ? (
+                <div className="border-2 border-dashed rounded-lg p-6 text-center bg-gray-50 border-gray-300">
+                  <svg
+                    className="w-12 h-12 text-gray-400 mb-2 mx-auto"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
+                    />
+                  </svg>
+                  <p className="text-sm text-gray-600 mb-1">
+                    Reference images not supported with FLUX.1
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    Switch to Google or Grok to use reference images
+                  </p>
+                </div>
+              ) : !uploadedImage ? (
                 <div
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { InferenceClient } from '@huggingface/inference';
 
 type Layout = 'landscape' | 'mobile' | 'square';
-type Model = 'google' | 'grok';
+type Model = 'google' | 'grok' | 'huggingface';
 
 const getLayoutDimensions = (layout: Layout): { width: number; height: number } => {
   switch (layout) {
@@ -373,6 +374,82 @@ async function generateWithGrok(prompt: string, layout: Layout, imageData?: stri
   return imageUrl;
 }
 
+async function generateWithHuggingFace(prompt: string, layout: Layout, imageData?: string): Promise<string> {
+  const { width, height } = getLayoutDimensions(layout);
+  const apiKey = process.env.HF_TOKEN;
+
+  if (!apiKey) {
+    throw new Error('HF_TOKEN is not configured. Please add it to your .env.local file.');
+  }
+
+  // Initialize Hugging Face Inference Client
+  const client = new InferenceClient(apiKey);
+
+  // Use FLUX.1-dev model with Nebius provider (fast inference)
+  const model = process.env.HF_MODEL || 'black-forest-labs/FLUX.1-dev';
+  const provider = process.env.HF_PROVIDER || 'nebius';
+
+  // IMPORTANT: Hugging Face text-to-image endpoint does NOT support reference images for image-to-image generation.
+  // Reference images are only supported by specific image-to-image models, not the text-to-image endpoint.
+  // We log a warning when a reference image is provided.
+  if (imageData) {
+    console.warn('Hugging Face text-to-image endpoint does not support reference images. Image-to-image generation is not available with FLUX.1-dev on this endpoint. The reference image will be ignored.');
+  }
+
+  console.log('Calling Hugging Face Inference API:', {
+    model,
+    provider,
+    prompt,
+    layout,
+    width,
+    height,
+    hasReferenceImage: !!imageData,
+  });
+
+  try {
+    // Generate image using text-to-image API
+    const result = await client.textToImage({
+      provider: provider as any,
+      model: model,
+      inputs: prompt,
+      parameters: {
+        num_inference_steps: 5, // Fast generation (increase for higher quality)
+        width: width,
+        height: height,
+      },
+    });
+
+    // Convert result to base64 data URI
+    // In Node.js, the Hugging Face client returns a Blob-like object or Buffer
+    let imageUrl: string;
+    let imageSize: number;
+
+    // Check if result has arrayBuffer method (Blob-like)
+    if (typeof (result as any).arrayBuffer === 'function') {
+      // If it's a Blob-like object, convert to base64
+      const arrayBuffer = await (result as any).arrayBuffer();
+      const base64 = Buffer.from(arrayBuffer).toString('base64');
+      const mimeType = (result as any).type || 'image/jpeg';
+      imageUrl = `data:${mimeType};base64,${base64}`;
+      imageSize = (result as any).size || arrayBuffer.byteLength;
+      console.log('Successfully generated image with Hugging Face (Blob-like), size:', imageSize, 'bytes');
+    } else if (Buffer.isBuffer(result)) {
+      // If it's already a Buffer, convert directly
+      const base64 = result.toString('base64');
+      imageUrl = `data:image/jpeg;base64,${base64}`;
+      imageSize = result.length;
+      console.log('Successfully generated image with Hugging Face (Buffer), size:', imageSize, 'bytes');
+    } else {
+      throw new Error('Unexpected response type from Hugging Face API');
+    }
+
+    return imageUrl;
+  } catch (error) {
+    console.error('Hugging Face API error:', error);
+    throw new Error(`Hugging Face API error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { prompt, layout, model = 'google', imageData } = await request.json();
@@ -399,12 +476,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const selectedModel: Model = model === 'grok' ? 'grok' : 'google';
-    
+    // Determine which model to use
+    let selectedModel: Model = 'google';
+    if (model === 'grok') {
+      selectedModel = 'grok';
+    } else if (model === 'huggingface') {
+      selectedModel = 'huggingface';
+    }
+
     // Route to the appropriate model handler
     let imageUrl: string;
     try {
-      if (selectedModel === 'grok') {
+      if (selectedModel === 'huggingface') {
+        imageUrl = await generateWithHuggingFace(prompt, layout, imageData);
+      } else if (selectedModel === 'grok') {
         imageUrl = await generateWithGrok(prompt, layout, imageData);
       } else {
         imageUrl = await generateWithGoogle(prompt, layout, imageData);
