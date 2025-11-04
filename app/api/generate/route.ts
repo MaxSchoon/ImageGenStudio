@@ -127,6 +127,7 @@ async function generateWithGoogle(prompt: string, layout: Layout): Promise<strin
 }
 
 async function generateWithGrok(prompt: string, layout: Layout): Promise<string> {
+  const { width, height } = getLayoutDimensions(layout);
   const apiKey = process.env.GROK_API_KEY || process.env.XAI_API_KEY;
   
   if (!apiKey) {
@@ -137,6 +138,8 @@ async function generateWithGrok(prompt: string, layout: Layout): Promise<string>
   // Documentation: https://docs.x.ai/docs/api-reference#image-generations
   // Must use /images/generations endpoint, not /chat/completions
   // Model: grok-2-image-1212 is the current image generation model
+  // Note: Grok currently supports fixed 4:3 aspect ratio (1024x768), but we pass dimensions
+  // in case the API supports them in future updates
   
   const layoutDescription = layout === 'landscape' 
     ? 'Create a landscape image (16:9 aspect ratio, wide format).'
@@ -159,9 +162,10 @@ async function generateWithGrok(prompt: string, layout: Layout): Promise<string>
   const requestBody: any = {
     model: model,
     prompt: enhancedPrompt,
+    width: width,
+    height: height,
     // Optional parameters (check documentation for supported options)
     // n: number of images to generate (default: 1, max: 10)
-    // size: image size (if supported)
     // quality: image quality (if supported)
     // style: image style (if supported)
   };
@@ -171,6 +175,8 @@ async function generateWithGrok(prompt: string, layout: Layout): Promise<string>
     model: model,
     prompt, 
     layout,
+    width,
+    height,
     enhancedPrompt,
   });
   
