@@ -123,6 +123,9 @@ export default function ImageStudio() {
         <h1 className="text-4xl font-bold text-black mb-8 text-center">
           Image Generation Studio
         </h1>
+        <p className="text-center italic text-black/70 mb-8">
+          "It is the glory of God to conceal things, but the glory of kings is to search things out."—Proverbs 25:2 (ESV)
+        </p>
 
         <ModelSelector
           selectedModel={selectedModel}
