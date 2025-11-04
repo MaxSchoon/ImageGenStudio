@@ -23,6 +23,7 @@ export default function AutocompleteTextarea({
   const [correctionText, setCorrectionText] = useState(''); // Corrected text (replaces current)
   const [isLoading, setIsLoading] = useState(false);
   const [isCorrecting, setIsCorrecting] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const ghostTextRef = useRef<HTMLDivElement>(null);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -171,8 +172,15 @@ export default function AutocompleteTextarea({
     }
   }, []);
 
-  // Debounced completion fetch
+  // Debounced completion fetch (only when focused)
   useEffect(() => {
+    // Only fetch suggestions when textarea is focused
+    if (!isFocused) {
+      setGhostText('');
+      setCorrectionText('');
+      return;
+    }
+
     // Clear existing timer
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
@@ -199,10 +207,16 @@ export default function AutocompleteTextarea({
         correctionAbortControllerRef.current.abort();
       }
     };
-  }, [value, fetchCompletion]);
+  }, [value, fetchCompletion, isFocused]);
 
-  // Fetch correction when user stops typing (for showing correction suggestions)
+  // Fetch correction when user stops typing (only when focused)
   useEffect(() => {
+    // Only fetch suggestions when textarea is focused
+    if (!isFocused) {
+      setCorrectionText('');
+      return;
+    }
+
     // Only fetch correction if there's substantial text (at least 5 characters)
     if (value.trim().length >= 5) {
       const timer = setTimeout(() => {
@@ -213,7 +227,7 @@ export default function AutocompleteTextarea({
     } else {
       setCorrectionText('');
     }
-  }, [value, fetchCorrection]);
+  }, [value, fetchCorrection, isFocused]);
 
   // Accept ghost text (completion) function
   const acceptGhostText = useCallback(() => {
@@ -294,6 +308,25 @@ export default function AutocompleteTextarea({
     onChange(e.target.value);
   }, [onChange]);
 
+  // Handle focus - enable suggestions
+  const handleFocus = useCallback(() => {
+    setIsFocused(true);
+  }, []);
+
+  // Handle blur - clear suggestions
+  const handleBlur = useCallback(() => {
+    setIsFocused(false);
+    setGhostText('');
+    setCorrectionText('');
+    // Cancel any pending requests
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    if (correctionAbortControllerRef.current) {
+      correctionAbortControllerRef.current.abort();
+    }
+  }, []);
+
   // Sync scroll between textarea and ghost text overlay
   const handleScroll = useCallback(() => {
     if (ghostTextRef.current && textareaRef.current) {
@@ -324,7 +357,8 @@ export default function AutocompleteTextarea({
           }}
         >
           {/* Show correction text if available, otherwise show user's text */}
-          {correctionText ? (
+          {/* Only show suggestions when focused */}
+          {isFocused && correctionText ? (
             <>
               {/* Show corrected text in green/italic */}
               <span
@@ -352,8 +386,8 @@ export default function AutocompleteTextarea({
             <>
               {/* Show user's text as transparent to match textarea */}
               <span>{value}</span>
-              {/* Show ghost text in gray/italic */}
-              {ghostText && (
+              {/* Show ghost text in gray/italic (only when focused) */}
+              {isFocused && ghostText && (
                 <span
                   style={{
                     color: 'rgba(0, 0, 0, 0.35)',
@@ -376,6 +410,8 @@ export default function AutocompleteTextarea({
         onChange={handleChange}
         onKeyDown={handleKeyDown}
         onScroll={handleScroll}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
         placeholder={isLoading ? 'Predicting...' : placeholder}
         className="relative w-full min-w-0 box-border px-4 py-3 bg-transparent rounded-lg border border-black/20 text-black placeholder-black/50 focus:outline-none focus:border-blue-500 focus:border-2 resize-none overflow-hidden"
         rows={rows}
@@ -392,45 +428,49 @@ export default function AutocompleteTextarea({
         }}
       />
 
-      {/* Mobile buttons */}
-      <div className="absolute bottom-2 left-2 right-2 sm:hidden flex gap-2 z-10">
-        {/* Correct button (left side) */}
-        {correctionText && (
-          <button
-            type="button"
-            onClick={acceptCorrection}
-            className="px-3 py-1.5 bg-green-500 text-white text-xs font-medium rounded-md hover:bg-green-600 active:bg-green-700 shadow-sm transition-colors"
-            aria-label="Accept correction"
-          >
-            Correct
-          </button>
-        )}
-        {/* Accept button (right side) */}
-        {ghostText && (
-          <button
-            type="button"
-            onClick={acceptGhostText}
-            className="ml-auto px-3 py-1.5 bg-blue-500 text-white text-xs font-medium rounded-md hover:bg-blue-600 active:bg-blue-700 shadow-sm transition-colors"
-            aria-label="Accept suggestion"
-          >
-            Accept
-          </button>
-        )}
-      </div>
+      {/* Mobile buttons (only show when focused) */}
+      {isFocused && (
+        <div className="absolute bottom-2 left-2 right-2 sm:hidden flex gap-2 z-10">
+          {/* Correct button (left side) */}
+          {correctionText && (
+            <button
+              type="button"
+              onClick={acceptCorrection}
+              className="px-3 py-1.5 bg-green-500 text-white text-xs font-medium rounded-md hover:bg-green-600 active:bg-green-700 shadow-sm transition-colors"
+              aria-label="Accept correction"
+            >
+              Correct
+            </button>
+          )}
+          {/* Accept button (right side) */}
+          {ghostText && (
+            <button
+              type="button"
+              onClick={acceptGhostText}
+              className="ml-auto px-3 py-1.5 bg-blue-500 text-white text-xs font-medium rounded-md hover:bg-blue-600 active:bg-blue-700 shadow-sm transition-colors"
+              aria-label="Accept suggestion"
+            >
+              Accept
+            </button>
+          )}
+        </div>
+      )}
 
-      {/* Desktop hints (hidden on mobile) */}
-      <div className="absolute bottom-2 left-2 right-2 hidden sm:flex gap-2 pointer-events-none z-10">
-        {correctionText && (
-          <span className="text-xs text-green-600 bg-white/80 px-2 py-1 rounded">
-            Tab to correct
-          </span>
-        )}
-        {ghostText && (
-          <span className="ml-auto text-xs text-gray-500 bg-white/80 px-2 py-1 rounded">
-            Tab to accept • Tab Tab to complete
-          </span>
-        )}
-      </div>
+      {/* Desktop hints (hidden on mobile, only show when focused) */}
+      {isFocused && (
+        <div className="absolute bottom-2 left-2 right-2 hidden sm:flex gap-2 pointer-events-none z-10">
+          {correctionText && (
+            <span className="text-xs text-green-600 bg-white/80 px-2 py-1 rounded">
+              Tab to correct
+            </span>
+          )}
+          {ghostText && (
+            <span className="ml-auto text-xs text-gray-500 bg-white/80 px-2 py-1 rounded">
+              Tab to accept • Tab Tab to complete
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Loading indicators */}
       {(isLoading || isCorrecting) && ghostText === '' && correctionText === '' && (
