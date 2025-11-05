@@ -487,8 +487,9 @@ async function generateWithQwen(prompt: string, layout: Layout, imageData: strin
   // Parse image data from base64 data URI
   const { mimeType, data: base64Data } = parseImageData(imageData);
   
-  // Convert base64 string to Buffer
+  // Convert base64 string to Buffer, then to Blob
   const imageBuffer = Buffer.from(base64Data, 'base64');
+  const imageBlob = new Blob([imageBuffer], { type: mimeType });
 
   console.log('Calling Hugging Face Qwen Image-to-Image API:', {
     model,
@@ -506,7 +507,7 @@ async function generateWithQwen(prompt: string, layout: Layout, imageData: strin
     const result = await client.imageToImage({
       provider: provider as any,
       model: model,
-      inputs: imageBuffer,
+      inputs: imageBlob,
       parameters: {
         prompt: prompt,
         width: width,

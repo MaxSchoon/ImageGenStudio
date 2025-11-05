@@ -111,7 +111,7 @@ HF_TOKEN=your_huggingface_token_here
 HF_MODEL2=Qwen/Qwen-Image-Edit  # Qwen image-to-image model (default: Qwen/Qwen-Image-Edit)
 ```
 
-- **HF_TOKEN**: Your Hugging Face API token (required) - Same token as FLUX.1
+- **HF_TOKEN**: Your Hugging Face API token (required) - Same token as FLUX.1-Kontext
 - **HF_MODEL2**: The Qwen model to use (optional, defaults to `Qwen/Qwen-Image-Edit`)
 
 **Obtaining a Hugging Face Token**:
@@ -126,7 +126,6 @@ HF_MODEL2=Qwen/Qwen-Image-Edit  # Qwen image-to-image model (default: Qwen/Qwen-
 - **Reference images are REQUIRED for Qwen** - Qwen is only available when a reference image is uploaded
 - Qwen supports layout dimensions (1:1, 16:9, 9:16, etc.) for image-to-image generation
 - The Qwen model button will be disabled until a reference image is uploaded
->>>>>>> b56483e (new model Qwen)
 
 ## Project Structure
 
