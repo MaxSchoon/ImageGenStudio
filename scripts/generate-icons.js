@@ -33,8 +33,8 @@ async function generateIcons() {
       { size: 512, name: 'android-chrome-512x512.png' },
     ];
 
-    // Favicon sizes for favicon.ico
-    const faviconSizes = [16, 32, 48];
+    // Favicon sizes for favicon.ico (include larger sizes for better quality)
+    const faviconSizes = [16, 32, 48, 64];
 
     console.log('Generating icons from:', sourceImage);
 
@@ -66,25 +66,45 @@ async function generateIcons() {
 
     // Generate favicon sizes
     console.log('Generating favicon sizes...');
-    const faviconBuffers = [];
+    
+    // Generate high-quality PNG files for ICO (all sizes, including 64)
+    const tempPngFiles = [];
     for (const size of faviconSizes) {
-      const buffer = await sharp(sourceImage)
-        .resize(size, size, {
-          fit: 'contain',
-          background: { r: 255, g: 255, b: 255, alpha: 0 }
-        })
-        .png()
-        .toBuffer();
-      faviconBuffers.push(buffer);
+      const pngPath = path.join(iconsDir, `favicon-${size}x${size}.png`);
       
-      // Also save as individual PNG files
-      await sharp(buffer)
-        .toFile(path.join(iconsDir, `favicon-${size}x${size}.png`));
-      console.log(`✓ Generated favicon-${size}x${size}.png`);
+      // Generate with 'cover' to fill entire space, preserve quality
+      // Use lanczos3 kernel for best quality resampling
+      await sharp(sourceImage)
+        .resize(size, size, {
+          fit: 'cover', // Fill entire space, crop if needed
+          position: 'center',
+          kernel: sharp.kernel.lanczos3 // High-quality resampling
+        })
+        .png({ 
+          quality: 100,
+          compressionLevel: 9,
+          palette: false, // Disable palette to preserve full color (24-bit RGB)
+          adaptiveFiltering: true
+        })
+        .toFile(pngPath);
+      
+      tempPngFiles.push(pngPath);
+      if (size <= 48) {
+        console.log(`✓ Generated favicon-${size}x${size}.png`);
+      } else {
+        console.log(`✓ Generated favicon-${size}x${size}.png for ICO`);
+      }
+    }
+    
+    // Read all PNG files and create ICO
+    console.log('Generating favicon.ico from PNG files...');
+    const faviconBuffers = [];
+    for (const pngPath of tempPngFiles) {
+      const buffer = fs.readFileSync(pngPath);
+      faviconBuffers.push(buffer);
     }
 
     // Create proper favicon.ico with multiple sizes
-    console.log('Generating favicon.ico...');
     const icoBuffer = await toIco(faviconBuffers);
     const icoPath = path.join(iconsDir, 'favicon.ico');
     fs.writeFileSync(icoPath, icoBuffer);
