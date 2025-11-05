@@ -11,7 +11,7 @@ interface AutocompleteTextareaProps {
   placeholder?: string;
   className?: string;
   rows?: number;
-  id?: string;
+  id: string;
 }
 
 export default function AutocompleteTextarea({
