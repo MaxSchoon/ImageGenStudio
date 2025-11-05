@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 
-const MIN_CORRECTION_DELAY_MS = 3000;
+const INITIAL_CORRECTION_DELAY_MS = 3000;
+const POST_COMPLETION_DELAY_MS = 8000;
 
 interface AutocompleteTextareaProps {
   value: string;
@@ -29,6 +30,7 @@ export default function AutocompleteTextarea({
   const correctionAbortControllerRef = useRef<AbortController | null>(null);
   const pendingSuggestionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSuggestionTimestampRef = useRef<number>(0);
+  const hasProvidedSuggestionRef = useRef<boolean>(false);
 
   // Auto-resize textarea based on content
   useEffect(() => {
@@ -100,6 +102,7 @@ export default function AutocompleteTextarea({
       if (!abortController.signal.aborted && data.completion && data.completion.trim() !== prompt.trim()) {
         setCorrectionText(data.completion);
         lastSuggestionTimestampRef.current = Date.now();
+        hasProvidedSuggestionRef.current = true;
       } else {
         setCorrectionText('');
       }
@@ -130,14 +133,15 @@ export default function AutocompleteTextarea({
 
     // Only fetch correction if there's substantial text (at least 5 characters)
     if (value.trim().length >= 5) {
+      const now = Date.now();
+      const baseDelay = hasProvidedSuggestionRef.current ? POST_COMPLETION_DELAY_MS : INITIAL_CORRECTION_DELAY_MS;
+      const earliestNextAllowed = lastSuggestionTimestampRef.current + baseDelay;
+      const cooldownRemaining = Math.max(earliestNextAllowed - now, 0);
+      const delay = Math.max(baseDelay, cooldownRemaining);
+
       if (pendingSuggestionTimerRef.current) {
         clearTimeout(pendingSuggestionTimerRef.current);
       }
-
-      const now = Date.now();
-      const earliestNextAllowed = lastSuggestionTimestampRef.current + MIN_CORRECTION_DELAY_MS;
-      const cooldownRemaining = Math.max(earliestNextAllowed - now, 0);
-      const delay = Math.max(MIN_CORRECTION_DELAY_MS, cooldownRemaining);
 
       const timer = setTimeout(() => {
         fetchCorrection(value);
@@ -170,6 +174,11 @@ export default function AutocompleteTextarea({
     onChange(correctionText);
     setCorrectionText('');
     lastSuggestionTimestampRef.current = Date.now();
+    hasProvidedSuggestionRef.current = true;
+    if (pendingSuggestionTimerRef.current) {
+      clearTimeout(pendingSuggestionTimerRef.current);
+      pendingSuggestionTimerRef.current = null;
+    }
     
     // Focus back on textarea and move cursor to end
     setTimeout(() => {
