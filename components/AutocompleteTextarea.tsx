@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 
+const MIN_CORRECTION_DELAY_MS = 3000;
+
 interface AutocompleteTextareaProps {
   value: string;
   onChange: (value: string) => void;
@@ -25,6 +27,8 @@ export default function AutocompleteTextarea({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const correctionAbortControllerRef = useRef<AbortController | null>(null);
+  const pendingSuggestionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastSuggestionTimestampRef = useRef<number>(0);
 
   // Auto-resize textarea based on content
   useEffect(() => {
@@ -95,6 +99,7 @@ export default function AutocompleteTextarea({
       // Only set correction text if request wasn't aborted and it's different from current
       if (!abortController.signal.aborted && data.completion && data.completion.trim() !== prompt.trim()) {
         setCorrectionText(data.completion);
+        lastSuggestionTimestampRef.current = Date.now();
       } else {
         setCorrectionText('');
       }
@@ -116,18 +121,45 @@ export default function AutocompleteTextarea({
     // Only fetch suggestions when textarea is focused
     if (!isFocused) {
       setCorrectionText('');
+      if (pendingSuggestionTimerRef.current) {
+        clearTimeout(pendingSuggestionTimerRef.current);
+        pendingSuggestionTimerRef.current = null;
+      }
       return;
     }
 
     // Only fetch correction if there's substantial text (at least 5 characters)
     if (value.trim().length >= 5) {
+      if (pendingSuggestionTimerRef.current) {
+        clearTimeout(pendingSuggestionTimerRef.current);
+      }
+
+      const now = Date.now();
+      const earliestNextAllowed = lastSuggestionTimestampRef.current + MIN_CORRECTION_DELAY_MS;
+      const cooldownRemaining = Math.max(earliestNextAllowed - now, 0);
+      const delay = Math.max(MIN_CORRECTION_DELAY_MS, cooldownRemaining);
+
       const timer = setTimeout(() => {
         fetchCorrection(value);
-      }, 600); // 600ms debounce for correction
+        pendingSuggestionTimerRef.current = null;
+      }, delay); // Enforce minimum delay before requesting suggestion
 
-      return () => clearTimeout(timer);
+      pendingSuggestionTimerRef.current = timer;
+
+      return () => {
+        if (pendingSuggestionTimerRef.current) {
+          clearTimeout(pendingSuggestionTimerRef.current);
+          pendingSuggestionTimerRef.current = null;
+        } else {
+          clearTimeout(timer);
+        }
+      };
     } else {
       setCorrectionText('');
+      if (pendingSuggestionTimerRef.current) {
+        clearTimeout(pendingSuggestionTimerRef.current);
+        pendingSuggestionTimerRef.current = null;
+      }
     }
   }, [value, fetchCorrection, isFocused]);
 
@@ -137,6 +169,7 @@ export default function AutocompleteTextarea({
     
     onChange(correctionText);
     setCorrectionText('');
+    lastSuggestionTimestampRef.current = Date.now();
     
     // Focus back on textarea and move cursor to end
     setTimeout(() => {
