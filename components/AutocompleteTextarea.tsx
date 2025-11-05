@@ -217,22 +217,33 @@ export default function AutocompleteTextarea({
   // Calculate ghost text suffix - the portion of correctionText that comes after value
   const ghostTextSuffix = useMemo(() => {
     if (!isFocused || !correctionText) return '';
-    
-    // Normalize both strings for comparison (trim whitespace)
-    const normalizedValue = value.trim();
-    const normalizedCorrection = correctionText.trim();
-    
-    // If correction starts with the user's value (case-insensitive), extract the suffix
-    if (normalizedCorrection.toLowerCase().startsWith(normalizedValue.toLowerCase())) {
-      // Use the original correction text to preserve case and formatting
-      // Find where the user's value ends in the correction
-      const valueLength = normalizedValue.length;
-      const correctionWithoutLeading = normalizedCorrection.slice(valueLength);
-      return correctionWithoutLeading;
+
+    const userInput = value;
+    const suggestion = correctionText;
+
+    if (!userInput) {
+      return suggestion;
     }
-    
-    // If there's no match, show the full correction text after the user's input
-    return normalizedCorrection;
+
+    const minLength = Math.min(userInput.length, suggestion.length);
+    let commonPrefixLength = 0;
+
+    while (
+      commonPrefixLength < minLength &&
+      userInput[commonPrefixLength]?.toLowerCase() === suggestion[commonPrefixLength]?.toLowerCase()
+    ) {
+      commonPrefixLength += 1;
+    }
+
+    if (commonPrefixLength === userInput.length && suggestion.toLowerCase().startsWith(userInput.toLowerCase())) {
+      return suggestion.slice(userInput.length);
+    }
+
+    if (commonPrefixLength === 0) {
+      return suggestion;
+    }
+
+    return suggestion.slice(commonPrefixLength);
   }, [value, correctionText, isFocused]);
 
   return (
@@ -245,6 +256,7 @@ export default function AutocompleteTextarea({
           fontFamily: 'inherit',
           fontSize: 'inherit',
           lineHeight: 'inherit',
+          zIndex: 0,
         }}
       >
         <div
@@ -264,7 +276,7 @@ export default function AutocompleteTextarea({
               {ghostTextSuffix && (
                 <span
                   style={{
-                    color: 'rgba(0, 0, 0, 0.6)',
+                    color: 'rgba(0, 0, 0, 0.35)',
                     fontStyle: 'italic',
                   }}
                 >
@@ -302,10 +314,7 @@ export default function AutocompleteTextarea({
           width: '100%',
           maxWidth: '100%',
           boxSizing: 'border-box',
-          color: isFocused && correctionText ? 'rgba(0, 0, 0, 0.3)' : 'rgb(0, 0, 0)',
-          textDecoration: isFocused && correctionText ? 'line-through' : 'none',
-          textDecorationThickness: isFocused && correctionText ? '2px' : 'auto',
-          textDecorationColor: isFocused && correctionText ? 'rgba(0, 0, 0, 0.5)' : 'transparent',
+          color: 'rgb(0, 0, 0)',
         }}
       />
 
