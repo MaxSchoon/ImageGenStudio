@@ -40,7 +40,8 @@ function parseImageData(dataUri: string): { mimeType: string; data: string } {
 }
 
 // Helper function to map layout to Google Gemini API aspect ratio string
-const getAspectRatio = (layout: Layout, referenceDimensions?: { width: number; height: number }): string => {
+// Google only supports the three fixed layouts: landscape, mobile, and square
+const getAspectRatio = (layout: Layout): string => {
   switch (layout) {
     case 'landscape':
       return '16:9';
@@ -48,24 +49,12 @@ const getAspectRatio = (layout: Layout, referenceDimensions?: { width: number; h
       return '9:16';
     case 'square':
       return '1:1';
-    case 'reference':
-      if (referenceDimensions) {
-        // Calculate aspect ratio from dimensions
-        const gcd = (a: number, b: number): number => b === 0 ? a : gcd(b, a % b);
-        const divisor = gcd(referenceDimensions.width, referenceDimensions.height);
-        const widthRatio = referenceDimensions.width / divisor;
-        const heightRatio = referenceDimensions.height / divisor;
-        return `${widthRatio}:${heightRatio}`;
-      }
-      return '1:1'; // Fallback
     default:
       return '1:1';
   }
 };
 
-async function generateWithGoogle(prompt: string, layout: Layout, imageData?: string, referenceDimensions?: { width: number; height: number }): Promise<string> {
-  const { width, height } = getLayoutDimensions(layout, referenceDimensions);
-
+async function generateWithGoogle(prompt: string, layout: Layout, imageData?: string): Promise<string> {
     // Get API key from environment variables
     const apiKey = process.env.GOOGLE_API_KEY || process.env.NANOBANANA_API_KEY;
     
@@ -107,7 +96,7 @@ async function generateWithGoogle(prompt: string, layout: Layout, imageData?: st
     });
     
     // Map layout to aspect ratio string for Google Gemini API
-    const aspectRatio = getAspectRatio(layout, referenceDimensions);
+    const aspectRatio = getAspectRatio(layout);
     
     const requestBody: any = {
       contents: [
@@ -603,6 +592,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate that reference layout is not used with Google model
+    if (model === 'google' && layout === 'reference') {
+      return NextResponse.json(
+        { error: 'Reference layout is not supported for Google model. Please use landscape, mobile, or square.' },
+        { status: 400 }
+      );
+    }
+
     // Determine which model to use
     let selectedModel: Model = 'google';
     if (model === 'grok') {
@@ -624,7 +621,8 @@ export async function POST(request: NextRequest) {
       } else if (selectedModel === 'qwen') {
         imageUrl = await generateWithQwen(prompt, layout, imageData!, refDims);
       } else {
-        imageUrl = await generateWithGoogle(prompt, layout, imageData, refDims);
+        // Google doesn't support reference dimensions, only the three fixed layouts
+        imageUrl = await generateWithGoogle(prompt, layout, imageData);
       }
     } catch (error) {
       console.error(`Error generating image with ${selectedModel}:`, error);
