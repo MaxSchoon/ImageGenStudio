@@ -1,17 +1,17 @@
 # Image Generation Studio
 
-A modern image generation application built with Next.js, React, and Tailwind CSS. Generate images using Google Gemini, xAI Grok, or Hugging Face FLUX.1-Kontext with a beautiful glass morphism UI.
+A modern image generation application built with Next.js, React, and Tailwind CSS. Generate images using Google Gemini, xAI Grok, Hugging Face FLUX.1-Kontext, or Qwen with a beautiful glass morphism UI.
 
 ## Features
 
 - 🎨 Modern glass morphism design
 - 📱 Multiple layout options (Landscape, Mobile, Square)
-- ⚡ Fast image generation using Google Gemini, xAI Grok, or Hugging Face FLUX.1-Kontext
-- 🤖 Model switching between Google, Grok, and FLUX.1-Kontext
+- ⚡ Fast image generation using Google Gemini, xAI Grok, Hugging Face FLUX.1-Kontext, or Qwen
+- 🤖 Model switching between Google, Grok, FLUX.1-Kontext, and Qwen
 - 🖼️ Image preview and download
 - ⏳ Beautiful loading screen
 - ✍️ AI-powered text autocomplete and spell correction
-- 🖼️ Image-to-image generation with reference images (Google Gemini and FLUX.1-Kontext)
+- 🖼️ Image-to-image generation with reference images (Google Gemini, FLUX.1-Kontext, and Qwen)
 
 ## Getting Started
 
@@ -81,7 +81,7 @@ GROK_COMPLETION_MODEL=grok-2-1212  # Text completion model (default: grok-2-1212
 - Image generation endpoint: [https://docs.x.ai/docs/api-reference#image-generations](https://docs.x.ai/docs/api-reference#image-generations)
 - Chat completions endpoint: [https://docs.x.ai/docs/api-reference#chat-completions](https://docs.x.ai/docs/api-reference#chat-completions)
 
-**Note**: Grok's image generation API supports fixed dimensions, but the app will pass your selected layout dimensions in case the API supports them in future updates. **Reference images are not supported by Grok** - use Google Gemini or FLUX.1-Kontext for image-to-image generation.
+**Note**: Grok's image generation API supports fixed dimensions, but the app will pass your selected layout dimensions in case the API supports them in future updates. **Reference images are not supported by Grok** - use Google Gemini, FLUX.1-Kontext, or Qwen for image-to-image generation.
 
 #### Hugging Face API Setup (FLUX.1-Kontext)
 
@@ -103,6 +103,30 @@ HF_PROVIDER=fal-ai  # Provider for fast inference (default: fal-ai)
 **API Documentation**: [Hugging Face Inference API](https://huggingface.co/docs/api-inference/index)
 
 **Note**: FLUX.1-Kontext supports both text-to-image and image-to-image generation with reference images using Hugging Face's inference API.
+
+#### Hugging Face API Setup (Qwen)
+
+```bash
+HF_TOKEN=your_huggingface_token_here
+HF_MODEL2=Qwen/Qwen-Image-Edit  # Qwen image-to-image model (default: Qwen/Qwen-Image-Edit)
+```
+
+- **HF_TOKEN**: Your Hugging Face API token (required) - Same token as FLUX.1
+- **HF_MODEL2**: The Qwen model to use (optional, defaults to `Qwen/Qwen-Image-Edit`)
+
+**Obtaining a Hugging Face Token**:
+- Sign up at [Hugging Face](https://huggingface.co/)
+- Go to Settings → Access Tokens
+- Create a new token with read permissions
+
+**API Documentation**: [Hugging Face Inference API](https://huggingface.co/docs/api-inference/index)
+
+**Important Notes**:
+- Qwen uses Hugging Face's image-to-image inference endpoint
+- **Reference images are REQUIRED for Qwen** - Qwen is only available when a reference image is uploaded
+- Qwen supports layout dimensions (1:1, 16:9, 9:16, etc.) for image-to-image generation
+- The Qwen model button will be disabled until a reference image is uploaded
+>>>>>>> b56483e (new model Qwen)
 
 ## Project Structure
 
@@ -132,12 +156,13 @@ ImageGen/
 
 ### Image Generation
 
-- **Text-to-Image**: Generate images from text prompts (all models)
-- **Image-to-Image**: Upload a reference image to guide the generation (**Google Gemini and FLUX.1-Kontext**)
+- **Text-to-Image**: Generate images from text prompts (Google, Grok, FLUX.1-Kontext)
+- **Image-to-Image**: Upload a reference image to guide the generation (**Google Gemini, FLUX.1-Kontext, and Qwen**)
   - ⚠️ Reference images are **not supported** by Grok model
-  - For image-to-image generation, use Google Gemini or FLUX.1-Kontext
+  - ⚠️ Reference images are **required** for Qwen model
+  - For image-to-image generation, use Google Gemini, FLUX.1-Kontext, or Qwen
 - **Layout Options**: Choose from Landscape (16:9), Mobile (9:16), or Square (1:1) aspect ratios
-- **Model Selection**: Switch between Google Gemini, xAI Grok, and Hugging Face FLUX.1-Kontext models
+- **Model Selection**: Switch between Google Gemini, xAI Grok, Hugging Face FLUX.1-Kontext, and Qwen models
 
 ### AI Text Autocomplete
 
@@ -181,9 +206,10 @@ To bypass geographic restrictions with Google's image generation API, deploy you
      - `GROK_API_KEY` or `XAI_API_KEY`: Your Grok API key (required for Grok model)
      - `GROK_MODEL`: `grok-2-image-1212` (optional)
      - `GROK_COMPLETION_MODEL`: `grok-2-1212` (optional)
-     - `HF_TOKEN`: Your Hugging Face token (required for FLUX.1-Kontext model)
-     - `HF_MODEL`: `black-forest-labs/FLUX.1-Kontext-dev` (optional)
-     - `HF_PROVIDER`: `fal-ai` (optional)
+     - `HF_TOKEN`: Your Hugging Face token (required for FLUX.1-Kontext and Qwen models)
+     - `HF_MODEL`: `black-forest-labs/FLUX.1-Kontext-dev` (optional, for FLUX.1-Kontext)
+     - `HF_PROVIDER`: `fal-ai` (optional, for FLUX.1-Kontext)
+     - `HF_MODEL2`: `Qwen/Qwen-Image-Edit` (optional, for Qwen)
    - Deploy
 
 3. **Why Vercel works**: Vercel runs your server-side API routes on infrastructure in supported regions (US by default), which bypasses the geographic restriction.

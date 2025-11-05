@@ -1,5 +1,5 @@
 type Layout = 'landscape' | 'mobile' | 'square';
-type Model = 'google' | 'grok' | 'huggingface';
+type Model = 'google' | 'grok' | 'huggingface' | 'qwen';
 
 export async function generateImage(prompt: string, layout: Layout, model: Model = 'google', imageData?: string): Promise<string> {
   try {

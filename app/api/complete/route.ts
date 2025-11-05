@@ -35,10 +35,18 @@ export async function POST(request: NextRequest) {
     
     // Create different system prompts for completion vs correction
     const systemPrompt = isCorrection
-      ? `You are a helpful assistant that corrects spelling and grammar in image generation prompts. 
-Fix any spelling mistakes, grammar errors, and improve the clarity of the prompt while keeping the original meaning and style.
-Only correct the text that was provided - do not add new content or complete the sentence.
-Return only the corrected version of the entire prompt.`
+      ? `You are a helpful assistant that improves image generation prompts. Your task is to:
+1. Fix any spelling mistakes and grammar errors
+2. Enhance the prompt specifically for image generation by:
+   - Adding relevant details that improve image quality (lighting, composition, style descriptors)
+   - Improving clarity and specificity
+   - Optimizing phrasing for better image generation results
+   - Adding appropriate visual descriptors when helpful
+3. Keep the original meaning, intent, and core message
+4. Maintain the user's style and tone
+5. Only improve the provided text - do not add completely new ideas or extend the prompt beyond what's provided
+
+Return only the improved version of the entire prompt.`
       : `You are a helpful assistant that completes image generation prompts. 
 Provide concise, natural completions that continue the user's prompt in a way that would be useful for image generation.
 Keep suggestions brief (typically 1-10 words) and relevant to image generation. 

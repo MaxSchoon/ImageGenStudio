@@ -19,15 +19,11 @@ export default function AutocompleteTextarea({
   rows = 4,
   id,
 }: AutocompleteTextareaProps) {
-  const [ghostText, setGhostText] = useState(''); // Completion text
-  const [correctionText, setCorrectionText] = useState(''); // Corrected text (replaces current)
-  const [isLoading, setIsLoading] = useState(false);
+  const [correctionText, setCorrectionText] = useState(''); // Corrected text (improved version)
   const [isCorrecting, setIsCorrecting] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const ghostTextRef = useRef<HTMLDivElement>(null);
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const abortControllerRef = useRef<AbortController | null>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
   const correctionAbortControllerRef = useRef<AbortController | null>(null);
 
   // Auto-resize textarea based on content
@@ -54,75 +50,11 @@ export default function AutocompleteTextarea({
     const newHeight = Math.max(scrollHeight, minHeight);
     textarea.style.height = `${newHeight}px`;
 
-    // Also update ghost text container height to match
-    if (ghostTextRef.current) {
-      ghostTextRef.current.style.height = `${newHeight}px`;
+    // Also update overlay container height to match
+    if (overlayRef.current) {
+      overlayRef.current.style.height = `${newHeight}px`;
     }
-  }, [value, ghostText, correctionText, rows]);
-
-  // Fetch completion from API
-  const fetchCompletion = useCallback(async (prompt: string) => {
-    // Cancel previous request if any
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-
-    // Skip if prompt is empty or too short
-    if (!prompt.trim() || prompt.trim().length < 3) {
-      setGhostText('');
-      setIsLoading(false);
-      return;
-    }
-
-    // Don't fetch completion if text ends with sentence-ending punctuation
-    const trimmedPrompt = prompt.trim();
-    const lastChar = trimmedPrompt[trimmedPrompt.length - 1];
-    if (lastChar === '.' || lastChar === '!' || lastChar === '?') {
-      setGhostText('');
-      setIsLoading(false);
-      return;
-    }
-
-    // Create new abort controller
-    const abortController = new AbortController();
-    abortControllerRef.current = abortController;
-
-    setIsLoading(true);
-
-    try {
-      const response = await fetch('/api/complete', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ prompt, mode: 'complete' }),
-        signal: abortController.signal,
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch completion');
-      }
-
-      const data = await response.json();
-      
-      // Only set ghost text if request wasn't aborted
-      if (!abortController.signal.aborted && data.completion) {
-        setGhostText(data.completion);
-      } else {
-        setGhostText('');
-      }
-    } catch (error: any) {
-      // Ignore abort errors (these are expected when user keeps typing)
-      if (error.name !== 'AbortError') {
-        console.error('Error fetching completion:', error);
-      }
-      setGhostText('');
-    } finally {
-      if (!abortController.signal.aborted) {
-        setIsLoading(false);
-      }
-    }
-  }, []);
+  }, [value, correctionText, rows]);
 
   // Fetch correction from API
   const fetchCorrection = useCallback(async (prompt: string) => {
@@ -179,53 +111,6 @@ export default function AutocompleteTextarea({
     }
   }, []);
 
-  // Debounced completion fetch (only when focused)
-  useEffect(() => {
-    // Only fetch suggestions when textarea is focused
-    if (!isFocused) {
-      setGhostText('');
-      setCorrectionText('');
-      return;
-    }
-
-    // Clear existing timer
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
-
-    // Clear ghost text and correction text immediately when value changes
-    setGhostText('');
-    setCorrectionText('');
-
-    // Check if text ends with sentence-ending punctuation - if so, don't fetch completion
-    const trimmedValue = value.trim();
-    const lastChar = trimmedValue[trimmedValue.length - 1];
-    const hasEndingPunctuation = lastChar === '.' || lastChar === '!' || lastChar === '?';
-
-    // Set up debounced fetch for completion (only if no ending punctuation)
-    if (!hasEndingPunctuation) {
-      debounceTimerRef.current = setTimeout(() => {
-        fetchCompletion(value);
-      }, 400); // 400ms debounce delay
-    } else {
-      // Clear any existing ghost text when ending punctuation is detected
-      setGhostText('');
-    }
-
-    // Cleanup
-    return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-      if (correctionAbortControllerRef.current) {
-        correctionAbortControllerRef.current.abort();
-      }
-    };
-  }, [value, fetchCompletion, isFocused]);
-
   // Fetch correction when user stops typing (only when focused)
   useEffect(() => {
     // Only fetch suggestions when textarea is focused
@@ -238,31 +123,13 @@ export default function AutocompleteTextarea({
     if (value.trim().length >= 5) {
       const timer = setTimeout(() => {
         fetchCorrection(value);
-      }, 600); // Slightly longer debounce for correction
+      }, 600); // 600ms debounce for correction
 
       return () => clearTimeout(timer);
     } else {
       setCorrectionText('');
     }
   }, [value, fetchCorrection, isFocused]);
-
-  // Accept ghost text (completion) function
-  const acceptGhostText = useCallback(() => {
-    if (!ghostText) return;
-    
-    const newValue = value + ghostText;
-    onChange(newValue);
-    setGhostText('');
-    
-    // Focus back on textarea and move cursor to end
-    setTimeout(() => {
-      if (textareaRef.current) {
-        textareaRef.current.focus();
-        const length = newValue.length;
-        textareaRef.current.setSelectionRange(length, length);
-      }
-    }, 0);
-  }, [ghostText, value, onChange]);
 
   // Accept correction function
   const acceptCorrection = useCallback(() => {
@@ -289,19 +156,12 @@ export default function AutocompleteTextarea({
         e.preventDefault();
         acceptCorrection();
       }
-    } else if (e.key === '=' && !e.shiftKey) {
-      // = key - accept ghost text completion
-      if (ghostText) {
-        e.preventDefault();
-        acceptGhostText();
-      }
     } else if (e.key === 'Escape') {
       e.preventDefault();
-      // Dismiss both ghost text and correction
-      setGhostText('');
+      // Dismiss correction
       setCorrectionText('');
     }
-  }, [ghostText, correctionText, acceptGhostText, acceptCorrection]);
+  }, [correctionText, acceptCorrection]);
 
   // Handle onChange
   const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -315,61 +175,50 @@ export default function AutocompleteTextarea({
 
   // Handle blur - clear suggestions (but not if clicking on buttons)
   const handleBlur = useCallback((e: React.FocusEvent<HTMLTextAreaElement>) => {
-    // Check if the blur is caused by clicking on one of our buttons
+    // Check if the blur is caused by clicking on our button
     const relatedTarget = e.relatedTarget as HTMLElement;
     if (relatedTarget && (
-      relatedTarget.closest('button[aria-label="Accept suggestion"]') ||
       relatedTarget.closest('button[aria-label="Accept correction"]')
     )) {
-      // Don't clear suggestions if clicking on buttons
+      // Don't clear suggestions if clicking on button
       return;
     }
 
     setIsFocused(false);
     // Cancel any pending requests first
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
     if (correctionAbortControllerRef.current) {
       correctionAbortControllerRef.current.abort();
     }
     // Clear suggestions immediately
-    setGhostText('');
     setCorrectionText('');
-    setIsLoading(false);
     setIsCorrecting(false);
   }, []);
 
   // Effect to clear suggestions when not focused
   useEffect(() => {
     if (!isFocused) {
-      setGhostText('');
       setCorrectionText('');
       // Cancel any pending requests
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
       if (correctionAbortControllerRef.current) {
         correctionAbortControllerRef.current.abort();
       }
-      setIsLoading(false);
       setIsCorrecting(false);
     }
   }, [isFocused]);
 
-  // Sync scroll between textarea and ghost text overlay
+  // Sync scroll between textarea and overlay
   const handleScroll = useCallback(() => {
-    if (ghostTextRef.current && textareaRef.current) {
-      ghostTextRef.current.scrollTop = textareaRef.current.scrollTop;
-      ghostTextRef.current.scrollLeft = textareaRef.current.scrollLeft;
+    if (overlayRef.current && textareaRef.current) {
+      overlayRef.current.scrollTop = textareaRef.current.scrollTop;
+      overlayRef.current.scrollLeft = textareaRef.current.scrollLeft;
     }
   }, []);
 
   return (
     <div className={`relative w-full max-w-full min-w-0 bg-white/90 backdrop-blur-sm rounded-lg overflow-hidden ${className}`}>
-      {/* Ghost text overlay - positioned behind textarea */}
+      {/* Overlay - positioned behind textarea to show corrected text as ghost text */}
       <div
-        ref={ghostTextRef}
+        ref={overlayRef}
         className="absolute inset-0 pointer-events-none overflow-hidden rounded-lg"
         style={{
           fontFamily: 'inherit',
@@ -387,58 +236,26 @@ export default function AutocompleteTextarea({
           }}
         >
           {/* Only show suggestions when focused */}
-          {isFocused ? (
+          {isFocused && correctionText ? (
             <>
-              {/* If correction is available, show corrected text instead of user's text */}
-              {correctionText ? (
-                <>
-                  <span
-                    style={{
-                      color: 'rgba(20, 184, 166, 0.7)',
-                      fontStyle: 'italic',
-                      textDecoration: 'underline',
-                    }}
-                  >
-                    {correctionText}
-                  </span>
-                  {/* Show ghost text after correction if available */}
-                  {ghostText && (
-                    <span
-                      style={{
-                        color: 'rgba(0, 0, 0, 0.35)',
-                        fontStyle: 'italic',
-                      }}
-                    >
-                      {ghostText}
-                    </span>
-                  )}
-                </>
-              ) : (
-                <>
-                  {/* Show user's text as transparent to match textarea */}
-                  <span>{value}</span>
-                  {/* Show ghost text completion if available */}
-                  {ghostText && (
-                    <span
-                      style={{
-                        color: 'rgba(0, 0, 0, 0.35)',
-                        fontStyle: 'italic',
-                      }}
-                    >
-                      {ghostText}
-                    </span>
-                  )}
-                </>
-              )}
+              {/* Show corrected text as ghost text (faded, secondary style) */}
+              <span
+                style={{
+                  color: 'rgba(0, 0, 0, 0.35)',
+                  fontStyle: 'italic',
+                }}
+              >
+                {correctionText}
+              </span>
             </>
           ) : (
-            /* When not focused, only show user's text (transparent) */
+            /* When not focused or no correction, show user's text (transparent) */
             <span>{value}</span>
           )}
         </div>
       </div>
 
-      {/* Actual textarea with transparent background to see ghost text */}
+      {/* Actual textarea - show user's text with strikethrough when correction is available */}
       <textarea
         ref={textareaRef}
         id={id}
@@ -448,7 +265,7 @@ export default function AutocompleteTextarea({
         onScroll={handleScroll}
         onFocus={handleFocus}
         onBlur={handleBlur}
-        placeholder={isLoading ? 'Predicting...' : placeholder}
+        placeholder={isCorrecting ? 'Improving...' : placeholder}
         className="relative w-full min-w-0 box-border px-4 py-3 bg-transparent rounded-lg border border-black/20 text-black placeholder-black/50 focus:outline-none focus:border-blue-500 focus:border-2 resize-none overflow-hidden"
         rows={rows}
         style={{
@@ -461,73 +278,46 @@ export default function AutocompleteTextarea({
           width: '100%',
           maxWidth: '100%',
           boxSizing: 'border-box',
+          textDecoration: isFocused && correctionText ? 'line-through' : 'none',
+          textDecorationColor: isFocused && correctionText ? 'rgba(0, 0, 0, 0.5)' : 'transparent',
         }}
       />
 
-      {/* Mobile buttons (only show when focused) */}
-      {isFocused && (
+      {/* Mobile buttons (only show when focused and correction available) */}
+      {isFocused && correctionText && (
         <div className="absolute bottom-2 left-2 right-2 sm:hidden flex gap-2 z-10">
-          {/* Correct button (left side) */}
-          {correctionText && (
-            <button
-              type="button"
-              onMouseDown={(e) => {
-                // Prevent textarea blur when clicking button
-                e.preventDefault();
-                acceptCorrection();
-              }}
-              onTouchStart={(e) => {
-                // Prevent textarea blur when tapping button on mobile
-                e.preventDefault();
-                acceptCorrection();
-              }}
-              className="px-3 py-1.5 bg-teal-600 text-white text-xs font-medium rounded-md hover:bg-teal-700 active:bg-teal-800 shadow-sm transition-colors"
-              aria-label="Accept correction"
-            >
-              Correct
-            </button>
-          )}
-          {/* Accept button (right side) */}
-          {ghostText && (
-            <button
-              type="button"
-              onMouseDown={(e) => {
-                // Prevent textarea blur when clicking button
-                e.preventDefault();
-                acceptGhostText();
-              }}
-              onTouchStart={(e) => {
-                // Prevent textarea blur when tapping button on mobile
-                e.preventDefault();
-                acceptGhostText();
-              }}
-              className="ml-auto px-3 py-1.5 bg-blue-500 text-white text-xs font-medium rounded-md hover:bg-blue-600 active:bg-blue-700 shadow-sm transition-colors"
-              aria-label="Accept suggestion"
-            >
-              Accept
-            </button>
-          )}
+          {/* Correct button */}
+          <button
+            type="button"
+            onMouseDown={(e) => {
+              // Prevent textarea blur when clicking button
+              e.preventDefault();
+              acceptCorrection();
+            }}
+            onTouchStart={(e) => {
+              // Prevent textarea blur when tapping button on mobile
+              e.preventDefault();
+              acceptCorrection();
+            }}
+            className="px-3 py-1.5 bg-teal-600 text-white text-xs font-medium rounded-md hover:bg-teal-700 active:bg-teal-800 shadow-sm transition-colors"
+            aria-label="Accept correction"
+          >
+            Accept
+          </button>
         </div>
       )}
 
-      {/* Desktop hints (hidden on mobile, only show when focused) */}
-      {isFocused && (
+      {/* Desktop hints (hidden on mobile, only show when focused and correction available) */}
+      {isFocused && correctionText && (
         <div className="absolute bottom-2 left-2 right-2 hidden sm:flex gap-2 pointer-events-none z-10">
-          {correctionText && (
-            <span className="text-xs text-teal-600 bg-white/80 px-2 py-1 rounded">
-              Tab to correct
-            </span>
-          )}
-          {ghostText && (
-            <span className="ml-auto text-xs text-gray-500 bg-white/80 px-2 py-1 rounded">
-              = to accept
-            </span>
-          )}
+          <span className="text-xs text-teal-600 bg-white/80 px-2 py-1 rounded">
+            Tab to accept
+          </span>
         </div>
       )}
 
-      {/* Loading indicators */}
-      {(isLoading || isCorrecting) && ghostText === '' && correctionText === '' && (
+      {/* Loading indicator */}
+      {isCorrecting && !correctionText && (
         <div className="absolute right-4 top-4 pointer-events-none z-10">
           <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse" />
         </div>
@@ -535,4 +325,3 @@ export default function AutocompleteTextarea({
     </div>
   );
 }
-

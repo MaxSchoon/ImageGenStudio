@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { InferenceClient } from '@huggingface/inference';
 
 type Layout = 'landscape' | 'mobile' | 'square';
-type Model = 'google' | 'grok' | 'huggingface';
+type Model = 'google' | 'grok' | 'huggingface' | 'qwen';
 
 const getLayoutDimensions = (layout: Layout): { width: number; height: number } => {
   switch (layout) {
@@ -465,6 +465,86 @@ async function generateWithHuggingFace(prompt: string, layout: Layout, imageData
   }
 }
 
+async function generateWithQwen(prompt: string, layout: Layout, imageData: string): Promise<string> {
+  const { width, height } = getLayoutDimensions(layout);
+  const apiKey = process.env.HF_TOKEN;
+
+  if (!apiKey) {
+    throw new Error('HF_TOKEN is not configured. Please add it to your .env.local file.');
+  }
+
+  if (!imageData) {
+    throw new Error('Reference image is required for Qwen model. Please upload a reference image.');
+  }
+
+  // Initialize Hugging Face Inference Client
+  const client = new InferenceClient(apiKey);
+
+  // Use Qwen/Qwen-Image-Edit model with auto provider
+  const model = process.env.HF_MODEL2 || 'Qwen/Qwen-Image-Edit';
+  const provider = 'auto';
+
+  // Parse image data from base64 data URI
+  const { mimeType, data: base64Data } = parseImageData(imageData);
+  
+  // Convert base64 string to Buffer
+  const imageBuffer = Buffer.from(base64Data, 'base64');
+
+  console.log('Calling Hugging Face Qwen Image-to-Image API:', {
+    model,
+    provider,
+    prompt,
+    layout,
+    width,
+    height,
+    imageSize: imageBuffer.length,
+    imageMimeType: mimeType,
+  });
+
+  try {
+    // Generate image using image-to-image API
+    const result = await client.imageToImage({
+      provider: provider as any,
+      model: model,
+      inputs: imageBuffer,
+      parameters: {
+        prompt: prompt,
+        width: width,
+        height: height,
+      },
+    });
+
+    // Convert result to base64 data URI
+    // In Node.js, the Hugging Face client returns a Blob-like object or Buffer
+    let imageUrl: string;
+    let imageSize: number;
+
+    // Check if result has arrayBuffer method (Blob-like)
+    if (typeof (result as any).arrayBuffer === 'function') {
+      // If it's a Blob-like object, convert to base64
+      const arrayBuffer = await (result as any).arrayBuffer();
+      const base64 = Buffer.from(arrayBuffer).toString('base64');
+      const mimeType = (result as any).type || 'image/png';
+      imageUrl = `data:${mimeType};base64,${base64}`;
+      imageSize = (result as any).size || arrayBuffer.byteLength;
+      console.log('Successfully generated image with Qwen (Blob-like), size:', imageSize, 'bytes');
+    } else if (Buffer.isBuffer(result)) {
+      // If it's already a Buffer, convert directly
+      const base64 = result.toString('base64');
+      imageUrl = `data:image/png;base64,${base64}`;
+      imageSize = result.length;
+      console.log('Successfully generated image with Qwen (Buffer), size:', imageSize, 'bytes');
+    } else {
+      throw new Error('Unexpected response type from Hugging Face Qwen API');
+    }
+
+    return imageUrl;
+  } catch (error) {
+    console.error('Hugging Face Qwen API error:', error);
+    throw new Error(`Hugging Face Qwen API error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { prompt, layout, model = 'google', imageData } = await request.json();
@@ -491,12 +571,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate that imageData is provided for Qwen model
+    if (model === 'qwen' && !imageData) {
+      return NextResponse.json(
+        { error: 'Reference image is required for Qwen model. Please upload a reference image.' },
+        { status: 400 }
+      );
+    }
+
     // Determine which model to use
     let selectedModel: Model = 'google';
     if (model === 'grok') {
       selectedModel = 'grok';
     } else if (model === 'huggingface') {
       selectedModel = 'huggingface';
+    } else if (model === 'qwen') {
+      selectedModel = 'qwen';
     }
 
     // Route to the appropriate model handler
@@ -506,6 +596,8 @@ export async function POST(request: NextRequest) {
         imageUrl = await generateWithHuggingFace(prompt, layout, imageData);
       } else if (selectedModel === 'grok') {
         imageUrl = await generateWithGrok(prompt, layout, imageData);
+      } else if (selectedModel === 'qwen') {
+        imageUrl = await generateWithQwen(prompt, layout, imageData!);
       } else {
         imageUrl = await generateWithGoogle(prompt, layout, imageData);
       }
