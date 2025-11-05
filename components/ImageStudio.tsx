@@ -87,22 +87,10 @@ export default function ImageStudio() {
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-    // If Qwen is selected and image is cleared, switch to Google model
-    if (selectedModel === 'qwen') {
-      setSelectedModel('google');
-      setError('Qwen requires a reference image. Switched to Google model.');
-    } else {
-      setError(null);
-    }
+    setError(null);
   };
 
   const handleModelSelect = (model: Model) => {
-    // Prevent selecting Qwen if no reference image is available
-    if (model === 'qwen' && !uploadedImage) {
-      setError('Qwen requires a reference image. Please upload an image first.');
-      return;
-    }
-    
     const previousModel = selectedModel;
     const modelsSupportingReferenceImages: Model[] = ['google', 'huggingface', 'qwen'];
     const previousModelSupportsImages = modelsSupportingReferenceImages.includes(previousModel);
@@ -131,11 +119,6 @@ export default function ImageStudio() {
       return;
     }
 
-    // Validate that Qwen has a reference image
-    if (selectedModel === 'qwen' && !uploadedImage) {
-      setError('Qwen requires a reference image. Please upload an image first.');
-      return;
-    }
 
     setIsLoading(true);
     setError(null);
@@ -177,7 +160,6 @@ export default function ImageStudio() {
         <ModelSelector
           selectedModel={selectedModel}
           onSelect={handleModelSelect}
-          hasReferenceImage={!!uploadedImage}
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8">
@@ -208,11 +190,6 @@ export default function ImageStudio() {
                     (Not supported by Grok)
                   </span>
                 )}
-                {selectedModel === 'qwen' && (
-                  <span className="text-xs text-blue-600 ml-2 font-normal">
-                    (Required for Qwen)
-                  </span>
-                )}
               </label>
               {selectedModel === 'grok' ? (
                 <div className="border-2 border-dashed rounded-lg p-6 text-center bg-gray-50 border-gray-300">
@@ -234,28 +211,6 @@ export default function ImageStudio() {
                   </p>
                   <p className="text-xs text-gray-500">
                     Switch to Google, FLUX.1-Kontext, or Qwen to use reference images
-                  </p>
-                </div>
-              ) : selectedModel === 'qwen' && !uploadedImage ? (
-                <div className="border-2 border-dashed rounded-lg p-6 text-center bg-blue-50 border-blue-300">
-                  <svg
-                    className="w-12 h-12 text-blue-400 mb-2 mx-auto"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                    />
-                  </svg>
-                  <p className="text-sm text-blue-800 mb-1 font-medium">
-                    Qwen requires a reference image
-                  </p>
-                  <p className="text-xs text-blue-700">
-                    Upload an image below to use Qwen for image-to-image generation
                   </p>
                 </div>
               ) : !uploadedImage ? (
