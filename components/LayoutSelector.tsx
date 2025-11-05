@@ -1,19 +1,24 @@
 'use client';
 
 type Layout = 'landscape' | 'mobile' | 'square' | 'reference';
+type Model = 'google' | 'grok' | 'huggingface' | 'qwen';
 
 interface LayoutSelectorProps {
   selectedLayout: Layout;
   onSelect: (layout: Layout) => void;
   hasReferenceImage?: boolean;
+  selectedModel?: Model;
 }
 
-export default function LayoutSelector({ selectedLayout, onSelect, hasReferenceImage = false }: LayoutSelectorProps) {
+export default function LayoutSelector({ selectedLayout, onSelect, hasReferenceImage = false, selectedModel = 'google' }: LayoutSelectorProps) {
+  // Google doesn't support reference layout, only the three fixed layouts
+  const modelSupportsReferenceLayout = selectedModel !== 'google';
+
   const layouts: { value: Layout; label: string; icon: string }[] = [
     { value: 'landscape', label: 'Landscape', icon: '▭' },
     { value: 'mobile', label: 'Mobile', icon: '▯' },
     { value: 'square', label: 'Square', icon: '▢' },
-    ...(hasReferenceImage ? [{ value: 'reference' as Layout, label: 'Reference', icon: '📐' }] : []),
+    ...(hasReferenceImage && modelSupportsReferenceLayout ? [{ value: 'reference' as Layout, label: 'Reference', icon: '📐' }] : []),
   ];
 
   return (
