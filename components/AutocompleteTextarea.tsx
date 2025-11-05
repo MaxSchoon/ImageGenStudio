@@ -238,10 +238,10 @@ export default function AutocompleteTextarea({
           {/* Only show suggestions when focused */}
           {isFocused && correctionText ? (
             <>
-              {/* Show corrected text as ghost text (faded, secondary style) */}
+              {/* Show corrected text as ghost text - more visible so user can see complete prompt */}
               <span
                 style={{
-                  color: 'rgba(0, 0, 0, 0.35)',
+                  color: 'rgba(0, 0, 0, 0.6)',
                   fontStyle: 'italic',
                 }}
               >
@@ -255,7 +255,7 @@ export default function AutocompleteTextarea({
         </div>
       </div>
 
-      {/* Actual textarea - show user's text with strikethrough when correction is available */}
+      {/* Actual textarea - show user's text more transparently when correction is available */}
       <textarea
         ref={textareaRef}
         id={id}
@@ -278,8 +278,9 @@ export default function AutocompleteTextarea({
           width: '100%',
           maxWidth: '100%',
           boxSizing: 'border-box',
+          color: isFocused && correctionText ? 'rgba(0, 0, 0, 0.25)' : 'rgb(0, 0, 0)',
           textDecoration: isFocused && correctionText ? 'line-through' : 'none',
-          textDecorationColor: isFocused && correctionText ? 'rgba(0, 0, 0, 0.5)' : 'transparent',
+          textDecorationColor: isFocused && correctionText ? 'rgba(0, 0, 0, 0.3)' : 'transparent',
         }}
       />
 
