@@ -2,14 +2,15 @@
 
 import { useState, useMemo, useEffect } from 'react';
 
-type Layout = 'landscape' | 'mobile' | 'square';
+type Layout = 'landscape' | 'mobile' | 'square' | 'reference';
 
 interface ImagePreviewProps {
   imageUrl: string;
   layout: Layout;
+  referenceDimensions?: { width: number; height: number } | null;
 }
 
-export default function ImagePreview({ imageUrl, layout }: ImagePreviewProps) {
+export default function ImagePreview({ imageUrl, layout, referenceDimensions }: ImagePreviewProps) {
   const [imageError, setImageError] = useState(false);
 
   // Convert data URI to blob URL for opening in new tab and downloading
@@ -58,6 +59,12 @@ export default function ImagePreview({ imageUrl, layout }: ImagePreviewProps) {
         return 'aspect-[9/16]';
       case 'square':
         return 'aspect-square';
+      case 'reference':
+        if (referenceDimensions) {
+          const aspectRatio = referenceDimensions.width / referenceDimensions.height;
+          return `aspect-[${aspectRatio}]`;
+        }
+        return 'aspect-square'; // Fallback
       default:
         return 'aspect-square';
     }

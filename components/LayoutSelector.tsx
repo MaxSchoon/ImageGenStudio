@@ -1,17 +1,19 @@
 'use client';
 
-type Layout = 'landscape' | 'mobile' | 'square';
+type Layout = 'landscape' | 'mobile' | 'square' | 'reference';
 
 interface LayoutSelectorProps {
   selectedLayout: Layout;
   onSelect: (layout: Layout) => void;
+  hasReferenceImage?: boolean;
 }
 
-export default function LayoutSelector({ selectedLayout, onSelect }: LayoutSelectorProps) {
+export default function LayoutSelector({ selectedLayout, onSelect, hasReferenceImage = false }: LayoutSelectorProps) {
   const layouts: { value: Layout; label: string; icon: string }[] = [
     { value: 'landscape', label: 'Landscape', icon: '▭' },
     { value: 'mobile', label: 'Mobile', icon: '▯' },
     { value: 'square', label: 'Square', icon: '▢' },
+    ...(hasReferenceImage ? [{ value: 'reference' as Layout, label: 'Reference', icon: '📐' }] : []),
   ];
 
   return (

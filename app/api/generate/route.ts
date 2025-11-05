@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { InferenceClient } from '@huggingface/inference';
 
-type Layout = 'landscape' | 'mobile' | 'square';
+type Layout = 'landscape' | 'mobile' | 'square' | 'reference';
 type Model = 'google' | 'grok' | 'huggingface' | 'qwen';
 
-const getLayoutDimensions = (layout: Layout): { width: number; height: number } => {
+const getLayoutDimensions = (layout: Layout, referenceDimensions?: { width: number; height: number }): { width: number; height: number } => {
   switch (layout) {
     case 'landscape':
       return { width: 1024, height: 576 }; // 16:9
@@ -12,6 +12,11 @@ const getLayoutDimensions = (layout: Layout): { width: number; height: number } 
       return { width: 576, height: 1024 }; // 9:16
     case 'square':
       return { width: 1024, height: 1024 };
+    case 'reference':
+      if (referenceDimensions) {
+        return referenceDimensions;
+      }
+      return { width: 1024, height: 1024 }; // Fallback
     default:
       return { width: 1024, height: 1024 };
   }
@@ -35,7 +40,7 @@ function parseImageData(dataUri: string): { mimeType: string; data: string } {
 }
 
 // Helper function to map layout to Google Gemini API aspect ratio string
-const getAspectRatio = (layout: Layout): string => {
+const getAspectRatio = (layout: Layout, referenceDimensions?: { width: number; height: number }): string => {
   switch (layout) {
     case 'landscape':
       return '16:9';
@@ -43,13 +48,23 @@ const getAspectRatio = (layout: Layout): string => {
       return '9:16';
     case 'square':
       return '1:1';
+    case 'reference':
+      if (referenceDimensions) {
+        // Calculate aspect ratio from dimensions
+        const gcd = (a: number, b: number): number => b === 0 ? a : gcd(b, a % b);
+        const divisor = gcd(referenceDimensions.width, referenceDimensions.height);
+        const widthRatio = referenceDimensions.width / divisor;
+        const heightRatio = referenceDimensions.height / divisor;
+        return `${widthRatio}:${heightRatio}`;
+      }
+      return '1:1'; // Fallback
     default:
       return '1:1';
   }
 };
 
-async function generateWithGoogle(prompt: string, layout: Layout, imageData?: string): Promise<string> {
-  const { width, height } = getLayoutDimensions(layout);
+async function generateWithGoogle(prompt: string, layout: Layout, imageData?: string, referenceDimensions?: { width: number; height: number }): Promise<string> {
+  const { width, height } = getLayoutDimensions(layout, referenceDimensions);
 
     // Get API key from environment variables
     const apiKey = process.env.GOOGLE_API_KEY || process.env.NANOBANANA_API_KEY;
@@ -92,7 +107,7 @@ async function generateWithGoogle(prompt: string, layout: Layout, imageData?: st
     });
     
     // Map layout to aspect ratio string for Google Gemini API
-    const aspectRatio = getAspectRatio(layout);
+    const aspectRatio = getAspectRatio(layout, referenceDimensions);
     
     const requestBody: any = {
       contents: [
@@ -184,8 +199,8 @@ async function generateWithGoogle(prompt: string, layout: Layout, imageData?: st
   return imageUrl;
 }
 
-async function generateWithGrok(prompt: string, layout: Layout, imageData?: string): Promise<string> {
-  const { width, height } = getLayoutDimensions(layout);
+async function generateWithGrok(prompt: string, layout: Layout, imageData?: string, referenceDimensions?: { width: number; height: number }): Promise<string> {
+  const { width, height } = getLayoutDimensions(layout, referenceDimensions);
   const apiKey = process.env.GROK_API_KEY || process.env.XAI_API_KEY;
   
   if (!apiKey) {
@@ -374,8 +389,8 @@ async function generateWithGrok(prompt: string, layout: Layout, imageData?: stri
   return imageUrl;
 }
 
-async function generateWithHuggingFace(prompt: string, layout: Layout, imageData?: string): Promise<string> {
-  const { width, height } = getLayoutDimensions(layout);
+async function generateWithHuggingFace(prompt: string, layout: Layout, imageData?: string, referenceDimensions?: { width: number; height: number }): Promise<string> {
+  const { width, height } = getLayoutDimensions(layout, referenceDimensions);
   const apiKey = process.env.HF_TOKEN;
 
   if (!apiKey) {
@@ -465,8 +480,8 @@ async function generateWithHuggingFace(prompt: string, layout: Layout, imageData
   }
 }
 
-async function generateWithQwen(prompt: string, layout: Layout, imageData: string): Promise<string> {
-  const { width, height } = getLayoutDimensions(layout);
+async function generateWithQwen(prompt: string, layout: Layout, imageData: string, referenceDimensions?: { width: number; height: number }): Promise<string> {
+  const { width, height } = getLayoutDimensions(layout, referenceDimensions);
   const apiKey = process.env.HF_TOKEN;
 
   if (!apiKey) {
@@ -480,9 +495,9 @@ async function generateWithQwen(prompt: string, layout: Layout, imageData: strin
   // Initialize Hugging Face Inference Client
   const client = new InferenceClient(apiKey);
 
-  // Use Qwen/Qwen-Image-Edit model with auto provider
+  // Use Qwen/Qwen-Image-Edit model with provider (use auto as default for Qwen)
   const model = process.env.HF_MODEL2 || 'Qwen/Qwen-Image-Edit';
-  const provider = 'auto';
+  const provider = process.env.HF_PROVIDER || 'auto';
 
   // Parse image data from base64 data URI
   const { mimeType, data: base64Data } = parseImageData(imageData);
@@ -504,14 +519,14 @@ async function generateWithQwen(prompt: string, layout: Layout, imageData: strin
 
   try {
     // Generate image using image-to-image API
+    // Note: width and height are not supported in parameters for imageToImage API
+    // The output dimensions will match the input image dimensions
     const result = await client.imageToImage({
       provider: provider as any,
       model: model,
       inputs: imageBlob,
       parameters: {
         prompt: prompt,
-        width: width,
-        height: height,
       },
     });
 
@@ -548,7 +563,7 @@ async function generateWithQwen(prompt: string, layout: Layout, imageData: strin
 
 export async function POST(request: NextRequest) {
   try {
-    const { prompt, layout, model = 'google', imageData } = await request.json();
+    const { prompt, layout, model = 'google', imageData, referenceDimensions } = await request.json();
 
     if (!prompt || typeof prompt !== 'string') {
       return NextResponse.json(
@@ -557,9 +572,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!layout || !['landscape', 'mobile', 'square'].includes(layout)) {
+    if (!layout || !['landscape', 'mobile', 'square', 'reference'].includes(layout)) {
       return NextResponse.json(
-        { error: 'Valid layout is required (landscape, mobile, or square)' },
+        { error: 'Valid layout is required (landscape, mobile, square, or reference)' },
+        { status: 400 }
+      );
+    }
+    
+    // Validate reference dimensions if layout is reference
+    if (layout === 'reference' && (!referenceDimensions || typeof referenceDimensions.width !== 'number' || typeof referenceDimensions.height !== 'number')) {
+      return NextResponse.json(
+        { error: 'Reference dimensions are required when using reference layout' },
         { status: 400 }
       );
     }
@@ -593,14 +616,15 @@ export async function POST(request: NextRequest) {
     // Route to the appropriate model handler
     let imageUrl: string;
     try {
+      const refDims = layout === 'reference' ? referenceDimensions : undefined;
       if (selectedModel === 'huggingface') {
-        imageUrl = await generateWithHuggingFace(prompt, layout, imageData);
+        imageUrl = await generateWithHuggingFace(prompt, layout, imageData, refDims);
       } else if (selectedModel === 'grok') {
-        imageUrl = await generateWithGrok(prompt, layout, imageData);
+        imageUrl = await generateWithGrok(prompt, layout, imageData, refDims);
       } else if (selectedModel === 'qwen') {
-        imageUrl = await generateWithQwen(prompt, layout, imageData!);
+        imageUrl = await generateWithQwen(prompt, layout, imageData!, refDims);
       } else {
-        imageUrl = await generateWithGoogle(prompt, layout, imageData);
+        imageUrl = await generateWithGoogle(prompt, layout, imageData, refDims);
       }
     } catch (error) {
       console.error(`Error generating image with ${selectedModel}:`, error);

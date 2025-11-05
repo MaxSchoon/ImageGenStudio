@@ -1,13 +1,18 @@
-type Layout = 'landscape' | 'mobile' | 'square';
+type Layout = 'landscape' | 'mobile' | 'square' | 'reference' | { type: 'reference'; width: number; height: number };
 type Model = 'google' | 'grok' | 'huggingface' | 'qwen';
 
-export async function generateImage(prompt: string, layout: Layout, model: Model = 'google', imageData?: string): Promise<string> {
+export async function generateImage(prompt: string, layout: Layout | { type: 'reference'; width: number; height: number }, model: Model = 'google', imageData?: string): Promise<string> {
   try {
     const requestBody: any = {
       prompt,
-      layout,
+      layout: typeof layout === 'object' ? layout.type : layout,
       model,
     };
+    
+    // Add reference dimensions if layout is reference
+    if (typeof layout === 'object' && layout.type === 'reference') {
+      requestBody.referenceDimensions = { width: layout.width, height: layout.height };
+    }
     
     if (imageData) {
       requestBody.imageData = imageData;

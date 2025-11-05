@@ -8,7 +8,7 @@ import ModelSelector from './ModelSelector';
 import AutocompleteTextarea from './AutocompleteTextarea';
 import { generateImage } from '@/lib/nanobanana';
 
-type Layout = 'landscape' | 'mobile' | 'square';
+type Layout = 'landscape' | 'mobile' | 'square' | 'reference';
 type Model = 'google' | 'grok' | 'huggingface' | 'qwen';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -22,6 +22,7 @@ export default function ImageStudio() {
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [referenceImageDimensions, setReferenceImageDimensions] = useState<{ width: number; height: number } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -48,6 +49,15 @@ export default function ImageStudio() {
       const result = e.target?.result;
       if (typeof result === 'string') {
         setUploadedImage(result);
+        // Extract dimensions from the image
+        const img = new Image();
+        img.onload = () => {
+          setReferenceImageDimensions({ width: img.width, height: img.height });
+        };
+        img.onerror = () => {
+          setError('Failed to load image dimensions.');
+        };
+        img.src = result;
       }
     };
     reader.onerror = () => {
@@ -84,10 +94,15 @@ export default function ImageStudio() {
 
   const handleClearImage = () => {
     setUploadedImage(null);
+    setReferenceImageDimensions(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
     setError(null);
+    // If reference layout was selected, reset to square
+    if (selectedLayout === 'reference') {
+      setSelectedLayout('square');
+    }
   };
 
   const handleModelSelect = (model: Model) => {
@@ -131,7 +146,12 @@ export default function ImageStudio() {
         ? undefined 
         : (uploadedImage || undefined);
       
-      const imageUrl = await generateImage(prompt, selectedLayout, selectedModel, imageDataToSend);
+      // For reference layout, pass dimensions if available
+      const layoutToUse = selectedLayout === 'reference' && referenceImageDimensions 
+        ? { type: 'reference' as const, width: referenceImageDimensions.width, height: referenceImageDimensions.height }
+        : selectedLayout;
+      
+      const imageUrl = await generateImage(prompt, layoutToUse, selectedModel, imageDataToSend);
       console.log('ImageStudio received imageUrl:', {
         hasImageUrl: !!imageUrl,
         imageUrlLength: imageUrl?.length || 0,
@@ -291,7 +311,15 @@ export default function ImageStudio() {
 
             <LayoutSelector
               selectedLayout={selectedLayout}
-              onSelect={setSelectedLayout}
+              onSelect={(layout) => {
+                // Prevent selecting reference layout if no reference image
+                if (layout === 'reference' && !uploadedImage) {
+                  setError('Please upload a reference image first to use the reference dimension option.');
+                  return;
+                }
+                setSelectedLayout(layout);
+              }}
+              hasReferenceImage={!!uploadedImage}
             />
 
             <button
@@ -314,7 +342,11 @@ export default function ImageStudio() {
             {isLoading && <LoadingScreen />}
 
             {generatedImage && !isLoading && (
-              <ImagePreview imageUrl={generatedImage} layout={selectedLayout} />
+              <ImagePreview 
+                imageUrl={generatedImage} 
+                layout={selectedLayout} 
+                referenceDimensions={selectedLayout === 'reference' ? referenceImageDimensions : null}
+              />
             )}
 
             {!generatedImage && !isLoading && (
