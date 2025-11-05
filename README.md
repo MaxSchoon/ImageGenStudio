@@ -207,7 +207,7 @@ To bypass geographic restrictions with Google's image generation API, deploy you
      - `GROK_COMPLETION_MODEL`: `grok-2-1212` (optional)
      - `HF_TOKEN`: Your Hugging Face token (required for FLUX.1-Kontext and Qwen models)
      - `HF_MODEL`: `black-forest-labs/FLUX.1-Kontext-dev` (optional, for FLUX.1-Kontext)
-     - `HF_PROVIDER`: `fal-ai` (optional, for FLUX.1-Kontext)
+     - `HF_PROVIDER`: `auto` (optional, for FLUX.1-Kontext)
      - `HF_MODEL2`: `Qwen/Qwen-Image-Edit` (optional, for Qwen)
    - Deploy
 
