@@ -110,16 +110,15 @@ export default function ImageStudio() {
     const modelsSupportingReferenceImages: Model[] = ['google', 'huggingface', 'qwen'];
     const previousModelSupportsImages = modelsSupportingReferenceImages.includes(previousModel);
     const newModelSupportsImages = modelsSupportingReferenceImages.includes(model);
-    
+
     setSelectedModel(model);
-    
-    // Handle Grok: show message only when switching TO Grok from a model that supports images
+
+    // Handle Grok: show message when switching TO Grok, but preserve the image data
     if (model === 'grok' && uploadedImage && previousModelSupportsImages) {
-      handleClearImage();
-      setError('Reference images are not supported with Grok. Switched to text-only generation.');
+      setError('Reference images are not supported with Grok. Your image will be preserved when you switch to another model.');
     }
     // Clear error when switching FROM Grok to a model that supports images
-    else if (previousModel === 'grok' && newModelSupportsImages && uploadedImage) {
+    else if (previousModel === 'grok' && newModelSupportsImages) {
       setError(null);
     }
     // Clear error when switching between models that support images
