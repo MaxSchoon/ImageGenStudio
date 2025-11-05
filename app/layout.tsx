@@ -3,6 +3,7 @@ import "./globals.css";
 import Footer from "@/components/Footer";
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://poiesis.nl'),
   title: "Image Generation Studio",
   description: "Generate images using nanobanana",
   manifest: "/manifest.json",
