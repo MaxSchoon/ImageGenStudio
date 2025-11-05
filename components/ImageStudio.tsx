@@ -53,7 +53,10 @@ export default function ImageStudio() {
         const img = new Image();
         img.onload = () => {
           setReferenceImageDimensions({ width: img.width, height: img.height });
-          setSelectedLayout('reference');
+          // Only auto-select 'reference' layout if the model supports it (Google doesn't)
+          if (selectedModel !== 'google') {
+            setSelectedLayout('reference');
+          }
         };
         img.onerror = () => {
           setError('Failed to load image dimensions.');
@@ -114,8 +117,14 @@ export default function ImageStudio() {
 
     setSelectedModel(model);
 
+    // If switching to Google and 'reference' layout is selected, change to 'square'
+    // Google doesn't support reference layout, only landscape, mobile, and square
+    if (model === 'google' && selectedLayout === 'reference') {
+      setSelectedLayout('square');
+      setError('Reference layout is not supported with Google. Switched to square layout.');
+    }
     // Handle Grok: show message when switching TO Grok, but preserve the image data
-    if (model === 'grok' && uploadedImage && previousModelSupportsImages) {
+    else if (model === 'grok' && uploadedImage && previousModelSupportsImages) {
       setError('Reference images are not supported with Grok. Your image will be preserved when you switch to another model.');
     }
     // Clear error when switching FROM Grok to a model that supports images
@@ -320,6 +329,7 @@ export default function ImageStudio() {
                 setSelectedLayout(layout);
               }}
               hasReferenceImage={!!uploadedImage}
+              selectedModel={selectedModel}
             />
 
             <button
