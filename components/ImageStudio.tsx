@@ -53,6 +53,7 @@ export default function ImageStudio() {
         const img = new Image();
         img.onload = () => {
           setReferenceImageDimensions({ width: img.width, height: img.height });
+          setSelectedLayout('reference');
         };
         img.onerror = () => {
           setError('Failed to load image dimensions.');
