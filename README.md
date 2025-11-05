@@ -64,12 +64,12 @@ XAI_API_KEY=your_grok_api_key_here
 
 # Optional: Customize models
 GROK_MODEL=grok-2-image-1212  # Image generation model (default: grok-2-image-1212)
-GROK_COMPLETION_MODEL=grok-2-1212  # Text completion model (default: grok-2-1212)
+GROK_COMPLETION_MODEL=grok-4-fast-non-reasoning  # Text completion model (default: grok-4-fast-non-reasoning)
 ```
 
 - **GROK_API_KEY** or **XAI_API_KEY**: Your Grok API key (required) - Both are supported for compatibility
 - **GROK_MODEL**: Image generation model (optional, defaults to `grok-2-image-1212`)
-- **GROK_COMPLETION_MODEL**: Text completion model (optional, defaults to `grok-2-1212`)
+- **GROK_COMPLETION_MODEL**: Text completion model (optional, defaults to `grok-4-fast-non-reasoning`)
 
 **Obtaining a Grok API Key**:
 - Sign up for an account at [x.ai](https://x.ai) or visit the [xAI Developer Console](https://console.x.ai)
@@ -204,7 +204,7 @@ To bypass geographic restrictions with Google's image generation API, deploy you
      - `GOOGLE_MODEL`: `gemini-2.5-flash-image` (optional)
      - `GROK_API_KEY` or `XAI_API_KEY`: Your Grok API key (required for Grok model)
      - `GROK_MODEL`: `grok-2-image-1212` (optional)
-     - `GROK_COMPLETION_MODEL`: `grok-2-1212` (optional)
+     - `GROK_COMPLETION_MODEL`: `grok-4-fast-non-reasoning` (optional)
      - `HF_TOKEN`: Your Hugging Face token (required for FLUX.1-Kontext and Qwen models)
      - `HF_MODEL`: `black-forest-labs/FLUX.1-Kontext-dev` (optional, for FLUX.1-Kontext)
      - `HF_PROVIDER`: `auto` (optional, for FLUX.1-Kontext)

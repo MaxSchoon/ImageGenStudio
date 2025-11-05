@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 
 interface AutocompleteTextareaProps {
   value: string;
@@ -214,6 +214,27 @@ export default function AutocompleteTextarea({
     }
   }, []);
 
+  // Calculate ghost text suffix - the portion of correctionText that comes after value
+  const ghostTextSuffix = useMemo(() => {
+    if (!isFocused || !correctionText) return '';
+    
+    // Normalize both strings for comparison (trim whitespace)
+    const normalizedValue = value.trim();
+    const normalizedCorrection = correctionText.trim();
+    
+    // If correction starts with the user's value (case-insensitive), extract the suffix
+    if (normalizedCorrection.toLowerCase().startsWith(normalizedValue.toLowerCase())) {
+      // Use the original correction text to preserve case and formatting
+      // Find where the user's value ends in the correction
+      const valueLength = normalizedValue.length;
+      const correctionWithoutLeading = normalizedCorrection.slice(valueLength);
+      return correctionWithoutLeading;
+    }
+    
+    // If there's no match, show the full correction text after the user's input
+    return normalizedCorrection;
+  }, [value, correctionText, isFocused]);
+
   return (
     <div className={`relative w-full max-w-full min-w-0 bg-white/90 backdrop-blur-sm rounded-lg overflow-hidden ${className}`}>
       {/* Overlay - positioned behind textarea to show corrected text as ghost text */}
@@ -238,15 +259,18 @@ export default function AutocompleteTextarea({
           {/* Only show suggestions when focused */}
           {isFocused && correctionText ? (
             <>
-              {/* Show corrected text as ghost text - more visible so user can see complete prompt */}
-              <span
-                style={{
-                  color: 'rgba(0, 0, 0, 0.6)',
-                  fontStyle: 'italic',
-                }}
-              >
-                {correctionText}
-              </span>
+              {/* Show user's text (transparent) followed by ghost text suffix */}
+              <span style={{ color: 'transparent' }}>{value}</span>
+              {ghostTextSuffix && (
+                <span
+                  style={{
+                    color: 'rgba(0, 0, 0, 0.6)',
+                    fontStyle: 'italic',
+                  }}
+                >
+                  {ghostTextSuffix}
+                </span>
+              )}
             </>
           ) : (
             /* When not focused or no correction, show user's text (transparent) */
@@ -278,9 +302,10 @@ export default function AutocompleteTextarea({
           width: '100%',
           maxWidth: '100%',
           boxSizing: 'border-box',
-          color: isFocused && correctionText ? 'rgba(0, 0, 0, 0.25)' : 'rgb(0, 0, 0)',
+          color: isFocused && correctionText ? 'rgba(0, 0, 0, 0.3)' : 'rgb(0, 0, 0)',
           textDecoration: isFocused && correctionText ? 'line-through' : 'none',
-          textDecorationColor: isFocused && correctionText ? 'rgba(0, 0, 0, 0.3)' : 'transparent',
+          textDecorationThickness: isFocused && correctionText ? '2px' : 'auto',
+          textDecorationColor: isFocused && correctionText ? 'rgba(0, 0, 0, 0.5)' : 'transparent',
         }}
       />
 
