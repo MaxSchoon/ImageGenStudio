@@ -1,7 +1,7 @@
 {
   "name": "Image Generation Studio",
   "short_name": "ImageGen",
-  "description": "Generate images using nanobanana",
+  "description": "Generate images using AI models",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
