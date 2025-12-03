@@ -1,7 +1,8 @@
-type Layout = 'landscape' | 'mobile' | 'square' | 'reference' | { type: 'reference'; width: number; height: number };
-type Model = 'google' | 'grok' | 'huggingface' | 'qwen';
+import { Layout, Model } from './modelConfig';
 
-export async function generateImage(prompt: string, layout: Layout | { type: 'reference'; width: number; height: number }, model: Model = 'google', imageData?: string): Promise<string> {
+type LayoutInput = Layout | { type: 'reference'; width: number; height: number };
+
+export async function generateImage(prompt: string, layout: LayoutInput, model: Model = 'google', imageData?: string): Promise<string> {
   try {
     const requestBody: any = {
       prompt,

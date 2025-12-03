@@ -7,9 +7,7 @@ import ImagePreview from './ImagePreview';
 import ModelSelector from './ModelSelector';
 import AutocompleteTextarea from './AutocompleteTextarea';
 import { generateImage } from '@/lib/nanobanana';
-
-type Layout = 'landscape' | 'mobile' | 'square' | 'reference';
-type Model = 'google' | 'grok' | 'huggingface' | 'qwen';
+import { Layout, Model, MODEL_CAPABILITIES } from '@/lib/modelConfig';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
@@ -53,8 +51,9 @@ export default function ImageStudio() {
         const img = new Image();
         img.onload = () => {
           setReferenceImageDimensions({ width: img.width, height: img.height });
-          // Only auto-select 'reference' layout if the model supports it (Google doesn't)
-          if (selectedModel !== 'google') {
+          // Only auto-select 'reference' layout if the model supports it
+          const capabilities = MODEL_CAPABILITIES[selectedModel];
+          if (capabilities.supportedLayouts.includes('reference')) {
             setSelectedLayout('reference');
           }
         };
@@ -111,28 +110,28 @@ export default function ImageStudio() {
 
   const handleModelSelect = (model: Model) => {
     const previousModel = selectedModel;
-    const modelsSupportingReferenceImages: Model[] = ['google', 'huggingface', 'qwen'];
-    const previousModelSupportsImages = modelsSupportingReferenceImages.includes(previousModel);
-    const newModelSupportsImages = modelsSupportingReferenceImages.includes(model);
+    const newCapabilities = MODEL_CAPABILITIES[model];
+    const prevCapabilities = MODEL_CAPABILITIES[previousModel];
 
     setSelectedModel(model);
 
-    // If switching to Google and 'reference' layout is selected, change to 'square'
-    // Google doesn't support reference layout, only landscape, mobile, and square
-    if (model === 'google' && selectedLayout === 'reference') {
+    // Handle layout selection based on new model capabilities
+    if (!newCapabilities.supportsLayoutSelection) {
+      // Qwen: force reference layout
+      setSelectedLayout('reference');
+      if (!uploadedImage) {
+        setError('Qwen requires a reference image. Please upload an image.');
+      } else {
+        setError(null);
+      }
+    } else if (!newCapabilities.supportedLayouts.includes(selectedLayout)) {
+      // Current layout not supported by new model - switch to square
       setSelectedLayout('square');
-      setError('Reference layout is not supported with Google. Switched to square layout.');
-    }
-    // Handle Grok: show message when switching TO Grok, but preserve the image data
-    else if (model === 'grok' && uploadedImage && previousModelSupportsImages) {
-      setError('Reference images are not supported with Grok. Your image will be preserved when you switch to another model.');
-    }
-    // Clear error when switching FROM Grok to a model that supports images
-    else if (previousModel === 'grok' && newModelSupportsImages) {
-      setError(null);
-    }
-    // Clear error when switching between models that support images
-    else if (previousModelSupportsImages && newModelSupportsImages) {
+      setError(`${selectedLayout} layout is not supported with this model. Switched to square layout.`);
+    } else if (!newCapabilities.supportsReferenceImages && uploadedImage && prevCapabilities.supportsReferenceImages) {
+      // Switching to model that doesn't support reference images (e.g., Grok)
+      setError('Reference images are not supported with this model. Your image will be preserved when you switch to another model.');
+    } else if (prevCapabilities.supportsReferenceImages || newCapabilities.supportsReferenceImages) {
       setError(null);
     }
   };
@@ -330,6 +329,7 @@ export default function ImageStudio() {
               }}
               hasReferenceImage={!!uploadedImage}
               selectedModel={selectedModel}
+              referenceDimensions={referenceImageDimensions}
             />
 
             <button

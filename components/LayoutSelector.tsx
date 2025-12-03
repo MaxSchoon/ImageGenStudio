@@ -1,25 +1,50 @@
 'use client';
 
-type Layout = 'landscape' | 'mobile' | 'square' | 'reference';
-type Model = 'google' | 'grok' | 'huggingface' | 'qwen';
+import { Layout, Model, MODEL_CAPABILITIES, getLayoutsForModel, LayoutConfig } from '@/lib/modelConfig';
 
 interface LayoutSelectorProps {
   selectedLayout: Layout;
   onSelect: (layout: Layout) => void;
   hasReferenceImage?: boolean;
   selectedModel?: Model;
+  referenceDimensions?: { width: number; height: number } | null;
 }
 
-export default function LayoutSelector({ selectedLayout, onSelect, hasReferenceImage = false, selectedModel = 'google' }: LayoutSelectorProps) {
-  // Google doesn't support reference layout, only the three fixed layouts
-  const modelSupportsReferenceLayout = selectedModel !== 'google';
+export default function LayoutSelector({
+  selectedLayout,
+  onSelect,
+  hasReferenceImage = false,
+  selectedModel = 'google',
+  referenceDimensions
+}: LayoutSelectorProps) {
+  const capabilities = MODEL_CAPABILITIES[selectedModel];
 
-  const layouts: { value: Layout; label: string; icon: string }[] = [
-    { value: 'landscape', label: 'Landscape', icon: '▭' },
-    { value: 'mobile', label: 'Mobile', icon: '▯' },
-    { value: 'square', label: 'Square', icon: '▢' },
-    ...(hasReferenceImage && modelSupportsReferenceLayout ? [{ value: 'reference' as Layout, label: 'Reference', icon: '📐' }] : []),
-  ];
+  // For Qwen, don't show layout selector - dimensions follow input image
+  if (!capabilities.supportsLayoutSelection) {
+    return (
+      <div className="mb-6">
+        <label className="block text-black font-medium mb-3">
+          Image Layout
+        </label>
+        <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 text-sm text-gray-600">
+          <span className="font-medium">Output dimensions:</span>{' '}
+          {referenceDimensions
+            ? `${referenceDimensions.width}x${referenceDimensions.height} (matches input image)`
+            : 'Will match your reference image dimensions'}
+        </div>
+      </div>
+    );
+  }
+
+  const layouts = getLayoutsForModel(selectedModel, hasReferenceImage);
+
+  // Build display label with dimensions
+  const getDisplayLabel = (layout: LayoutConfig): string => {
+    if (layout.value === 'reference' && referenceDimensions) {
+      return `${referenceDimensions.width}x${referenceDimensions.height}`;
+    }
+    return layout.dimensions;
+  };
 
   return (
     <div className="mb-6">
@@ -39,10 +64,10 @@ export default function LayoutSelector({ selectedLayout, onSelect, hasReferenceI
           >
             <div className="text-xl sm:text-2xl mb-1">{layout.icon}</div>
             <div className="text-xs sm:text-sm font-medium">{layout.label}</div>
+            <div className="text-xs opacity-70">{getDisplayLabel(layout)}</div>
           </button>
         ))}
       </div>
     </div>
   );
 }
-

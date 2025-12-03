@@ -1,26 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { InferenceClient } from '@huggingface/inference';
-
-type Layout = 'landscape' | 'mobile' | 'square' | 'reference';
-type Model = 'google' | 'grok' | 'huggingface' | 'qwen';
-
-const getLayoutDimensions = (layout: Layout, referenceDimensions?: { width: number; height: number }): { width: number; height: number } => {
-  switch (layout) {
-    case 'landscape':
-      return { width: 1024, height: 576 }; // 16:9
-    case 'mobile':
-      return { width: 576, height: 1024 }; // 9:16
-    case 'square':
-      return { width: 1024, height: 1024 };
-    case 'reference':
-      if (referenceDimensions) {
-        return referenceDimensions;
-      }
-      return { width: 1024, height: 1024 }; // Fallback
-    default:
-      return { width: 1024, height: 1024 };
-  }
-};
+import { Layout, Model, MODEL_CAPABILITIES, getLayoutDimensions, GOOGLE_ASPECT_RATIOS } from '@/lib/modelConfig';
 
 // Helper function to extract base64 data and mimeType from data URI
 function parseImageData(dataUri: string): { mimeType: string; data: string } {
@@ -39,20 +19,6 @@ function parseImageData(dataUri: string): { mimeType: string; data: string } {
   };
 }
 
-// Helper function to map layout to Google Gemini API aspect ratio string
-// Google only supports the three fixed layouts: landscape, mobile, and square
-const getAspectRatio = (layout: Layout): string => {
-  switch (layout) {
-    case 'landscape':
-      return '16:9';
-    case 'mobile':
-      return '9:16';
-    case 'square':
-      return '1:1';
-    default:
-      return '1:1';
-  }
-};
 
 async function generateWithGoogle(prompt: string, layout: Layout, imageData?: string): Promise<string> {
     // Get API key from environment variables
@@ -96,8 +62,8 @@ async function generateWithGoogle(prompt: string, layout: Layout, imageData?: st
     });
     
     // Map layout to aspect ratio string for Google Gemini API
-    const aspectRatio = getAspectRatio(layout);
-    
+    const aspectRatio = GOOGLE_ASPECT_RATIOS[layout];
+
     const requestBody: any = {
       contents: [
         {
@@ -108,6 +74,7 @@ async function generateWithGoogle(prompt: string, layout: Layout, imageData?: st
         responseModalities: ['Text', 'Image'],
         imageConfig: {
           aspectRatio: aspectRatio,
+          imageSize: '2K', // HD resolution (~2048px)
         },
       },
     };
@@ -592,10 +559,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate that reference layout is not used with Google model
-    if (model === 'google' && layout === 'reference') {
+    // Validate that layout is supported by the selected model
+    const capabilities = MODEL_CAPABILITIES[model as Model];
+    if (capabilities && !capabilities.supportedLayouts.includes(layout)) {
       return NextResponse.json(
-        { error: 'Reference layout is not supported for Google model. Please use landscape, mobile, or square.' },
+        { error: `${layout} layout is not supported for ${model} model. Supported layouts: ${capabilities.supportedLayouts.join(', ')}.` },
         { status: 400 }
       );
     }
