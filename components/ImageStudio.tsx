@@ -150,7 +150,7 @@ export default function ImageStudio() {
 
     try {
       // Don't pass uploadedImage to Grok API as it doesn't support reference images
-      // FLUX.1-Kontext and Qwen support reference images, so pass it for those models
+      // Flux and Qwen support reference images, so pass it for those models
       const imageDataToSend = selectedModel === 'grok' 
         ? undefined 
         : (uploadedImage || undefined);
@@ -239,7 +239,7 @@ export default function ImageStudio() {
                     Reference images not supported with Grok
                   </p>
                   <p className="text-xs text-gray-500">
-                    Switch to Google, FLUX.1-Kontext, or Qwen to use reference images
+                    Switch to Google, Flux, or Qwen to use reference images
                   </p>
                 </div>
               ) : !uploadedImage ? (

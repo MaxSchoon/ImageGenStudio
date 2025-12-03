@@ -48,7 +48,7 @@ export default function ModelSelector({ selectedModel, onSelect }: ModelSelector
             }
           `}
         >
-          FLUX.1-Kontext
+          Flux
         </button>
         <button
           onClick={() => onSelect('qwen')}
