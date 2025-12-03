@@ -156,7 +156,7 @@ async function generateWithGoogle(prompt: string, layout: Layout, imageData?: st
 }
 
 async function generateWithGrok(prompt: string, layout: Layout, imageData?: string, referenceDimensions?: { width: number; height: number }): Promise<string> {
-  const { width, height } = getLayoutDimensions(layout, referenceDimensions);
+  const { width, height } = getLayoutDimensions(layout, referenceDimensions, 'grok');
   const apiKey = process.env.GROK_API_KEY || process.env.XAI_API_KEY;
   
   if (!apiKey) {
@@ -346,7 +346,7 @@ async function generateWithGrok(prompt: string, layout: Layout, imageData?: stri
 }
 
 async function generateWithHuggingFace(prompt: string, layout: Layout, imageData?: string, referenceDimensions?: { width: number; height: number }): Promise<string> {
-  const { width, height } = getLayoutDimensions(layout, referenceDimensions);
+  const { width, height } = getLayoutDimensions(layout, referenceDimensions, 'huggingface');
   const apiKey = process.env.HF_TOKEN;
 
   if (!apiKey) {
@@ -437,7 +437,7 @@ async function generateWithHuggingFace(prompt: string, layout: Layout, imageData
 }
 
 async function generateWithQwen(prompt: string, layout: Layout, imageData: string, referenceDimensions?: { width: number; height: number }): Promise<string> {
-  const { width, height } = getLayoutDimensions(layout, referenceDimensions);
+  const { width, height } = getLayoutDimensions(layout, referenceDimensions, 'qwen');
   const apiKey = process.env.HF_TOKEN;
 
   if (!apiKey) {
