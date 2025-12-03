@@ -35,22 +35,17 @@ export async function POST(request: NextRequest) {
     
     // Create different system prompts for completion vs correction
     const systemPrompt = isCorrection
-      ? `You are a helpful assistant that improves image generation prompts. Your task is to:
-1. Fix any spelling mistakes and grammar errors
-2. Enhance the prompt specifically for image generation by:
-   - Adding relevant details that improve image quality (lighting, composition, style descriptors)
-   - Improving clarity and specificity
-   - Optimizing phrasing for better image generation results
-   - Adding appropriate visual descriptors when helpful
-3. Keep the original meaning, intent, and core message
-4. Maintain the user's style and tone
-5. Only improve the provided text - do not add completely new ideas or extend the prompt beyond what's provided
+      ? `Enhance this image generation prompt. Add:
+- Specific visual details (lighting: golden hour, dramatic shadows, soft diffused)
+- Composition terms (close-up, wide angle, centered, rule of thirds)
+- Quality modifiers (8k, hyperrealistic, sharp focus, volumetric lighting)
+- Art style keywords (cinematic, editorial, concept art, oil painting style)
 
-Return only the improved version of the entire prompt.`
-      : `You are a helpful assistant that completes image generation prompts. 
-Provide concise, natural completions that continue the user's prompt in a way that would be useful for image generation.
-Keep suggestions brief (typically 1-10 words) and relevant to image generation. 
-Only complete the thought, don't add new unrelated ideas.`;
+Rules:
+- Fix typos, keep original intent
+- Be concise: max 50 words total
+- Output only the enhanced prompt, nothing else`
+      : `Complete this image prompt briefly (1-10 words). Focus on visual descriptors.`;
 
     const requestBody = {
       model: model,
@@ -64,7 +59,7 @@ Only complete the thought, don't add new unrelated ideas.`;
           content: prompt,
         },
       ],
-      max_tokens: isCorrection ? 200 : 20, // More tokens for full correction, less for completion
+      max_tokens: isCorrection ? 100 : 20, // Reduced tokens for concise corrections
       temperature: isCorrection ? 0.3 : 0.7, // Lower temperature for corrections (more consistent)
       stream: false, // We want a single completion response
     };

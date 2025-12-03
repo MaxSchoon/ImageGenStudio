@@ -197,8 +197,8 @@ export default function ImageStudio() {
             <div className="mb-6">
               <label htmlFor="prompt" className="block text-black font-medium mb-2">
                 Image Prompt
-                <span className="text-xs text-gray-500 ml-2 font-normal">
-                  (Tab: accept correction • Mobile: tap button)
+                <span className="hidden sm:inline text-xs text-gray-500 ml-2 font-normal">
+                  (Tab to accept suggestions)
                 </span>
               </label>
               <AutocompleteTextarea
@@ -292,7 +292,7 @@ export default function ImageStudio() {
                     <img
                       src={uploadedImage}
                       alt="Uploaded reference"
-                      className="w-full h-auto max-h-64 object-contain"
+                      className="w-full h-auto max-h-40 sm:max-h-64 object-contain"
                     />
                   </div>
                   <button

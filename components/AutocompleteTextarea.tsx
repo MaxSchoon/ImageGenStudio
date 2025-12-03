@@ -289,7 +289,8 @@ export default function AutocompleteTextarea({
   }, [value, correctionText, isFocused]);
 
   return (
-    <div className={`relative w-full max-w-full min-w-0 bg-white/90 backdrop-blur-sm rounded-lg overflow-hidden ${className}`}>
+    <div className={`w-full ${className}`}>
+    <div className="relative w-full max-w-full min-w-0 bg-white/90 backdrop-blur-sm rounded-lg overflow-hidden">
       {/* Overlay - positioned behind textarea to show corrected text as ghost text */}
       <div
         ref={overlayRef}
@@ -317,9 +318,9 @@ export default function AutocompleteTextarea({
               <span style={{ color: 'transparent' }}>{value}</span>
               {ghostTextSuffix && (
                 <span
+                  className="animate-fade-in"
                   style={{
-                    color: 'rgba(0, 0, 0, 0.35)',
-                    fontStyle: 'italic',
+                    color: 'rgba(59, 130, 246, 0.5)',
                   }}
                 >
                   {ghostTextSuffix}
@@ -360,43 +361,50 @@ export default function AutocompleteTextarea({
         }}
       />
 
-      {/* Mobile buttons (only show when focused and correction available) */}
-      {isFocused && correctionText && (
-        <div className="absolute bottom-2 left-2 right-2 sm:hidden flex gap-2 z-10">
-          {/* Correct button */}
-          <button
-            type="button"
-            onMouseDown={(e) => {
-              // Prevent textarea blur when clicking button
-              e.preventDefault();
-              acceptCorrection();
-            }}
-            onTouchStart={(e) => {
-              // Prevent textarea blur when tapping button on mobile
-              e.preventDefault();
-              acceptCorrection();
-            }}
-            className="px-3 py-1.5 bg-teal-600 text-white text-xs font-medium rounded-md hover:bg-teal-700 active:bg-teal-800 shadow-sm transition-colors"
-            aria-label="Accept correction"
-          >
-            Accept
-          </button>
-        </div>
-      )}
-
       {/* Desktop hints (hidden on mobile, only show when focused and correction available) */}
       {isFocused && correctionText && (
         <div className="absolute bottom-2 left-2 right-2 hidden sm:flex gap-2 pointer-events-none z-10">
-          <span className="text-xs text-teal-600 bg-white/80 px-2 py-1 rounded">
-            Tab to accept
+          <span className="text-xs text-blue-600 bg-blue-50/90 backdrop-blur-sm px-2.5 py-1 rounded-md border border-blue-200/50 shadow-sm">
+            <kbd className="font-mono text-[10px] bg-blue-100 px-1 py-0.5 rounded mr-1">Tab</kbd>
+            to accept
           </span>
         </div>
       )}
 
-      {/* Loading indicator */}
+      {/* Loading indicator - bouncing dots with label */}
       {isCorrecting && !correctionText && (
-        <div className="absolute right-4 top-4 pointer-events-none z-10">
-          <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse" />
+        <div className="absolute right-3 top-3 pointer-events-none z-10 flex items-center gap-1.5">
+          <div className="flex gap-0.5">
+            <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0ms', animationDuration: '600ms' }} />
+            <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '150ms', animationDuration: '600ms' }} />
+            <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '300ms', animationDuration: '600ms' }} />
+          </div>
+          <span className="text-xs text-blue-500/70 font-medium">Enhancing...</span>
+        </div>
+      )}
+    </div>
+
+      {/* Mobile accept button - positioned below textarea for better UX */}
+      {isFocused && correctionText && (
+        <div className="mt-2 sm:hidden">
+          <button
+            type="button"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              acceptCorrection();
+            }}
+            onTouchStart={(e) => {
+              e.preventDefault();
+              acceptCorrection();
+            }}
+            className="w-full px-4 py-2.5 bg-gradient-to-r from-teal-500 to-blue-500 text-white text-sm font-medium rounded-lg hover:from-teal-600 hover:to-blue-600 active:from-teal-700 active:to-blue-700 active:scale-[0.98] shadow-md transition-all duration-150 flex items-center justify-center gap-2"
+            aria-label="Accept correction"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            Accept Suggestion
+          </button>
         </div>
       )}
     </div>
