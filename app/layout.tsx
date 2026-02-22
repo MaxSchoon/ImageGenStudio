@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import Footer from "@/components/Footer";
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://poiesis.nl'),
@@ -62,7 +61,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#000000",
+  themeColor: "#1a1a1a",
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
@@ -75,11 +74,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body suppressHydrationWarning className="flex flex-col min-h-screen">
-        <main className="flex-1">{children}</main>
-        <Footer />
+      <body suppressHydrationWarning className="h-screen overflow-hidden">
+        {children}
       </body>
     </html>
   );
 }
-

@@ -3,6 +3,49 @@
 @tailwind utilities;
 
 body {
-  @apply bg-white text-black;
+  @apply bg-studio-bg text-studio-text;
 }
 
+/* Thin scrollbar for sidebar */
+.studio-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #3a3a3a transparent;
+}
+.studio-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.studio-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.studio-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #3a3a3a;
+  border-radius: 3px;
+}
+.studio-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: #555;
+}
+
+/* Bottom sheet drag handle */
+.drag-handle {
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background-color: #555;
+  margin: 8px auto;
+}
+
+/* Checkerboard for transparent image backgrounds */
+.checkerboard {
+  background-image:
+    linear-gradient(45deg, #2a2a2a 25%, transparent 25%),
+    linear-gradient(-45deg, #2a2a2a 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #2a2a2a 75%),
+    linear-gradient(-45deg, transparent 75%, #2a2a2a 75%);
+  background-size: 20px 20px;
+  background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+}
+
+/* Safe area padding for mobile devices with notch/home indicator */
+.pb-safe-area {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}

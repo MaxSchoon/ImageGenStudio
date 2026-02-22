@@ -19,18 +19,15 @@ export default function LayoutSelector({
 }: LayoutSelectorProps) {
   const capabilities = MODEL_CAPABILITIES[selectedModel];
 
-  // For Qwen, don't show layout selector - dimensions follow input image
   if (!capabilities.supportsLayoutSelection) {
     return (
-      <div className="mb-6">
-        <label className="block text-black font-medium mb-3">
-          Image Layout
-        </label>
-        <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 text-sm text-gray-600">
-          <span className="font-medium">Output dimensions:</span>{' '}
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-studio-text">Layout</label>
+        <div className="p-3 bg-studio-elevated rounded-lg border border-studio-border text-sm text-studio-muted">
+          <span className="font-medium text-studio-text">Output dimensions:</span>{' '}
           {referenceDimensions
-            ? `${referenceDimensions.width}x${referenceDimensions.height} (matches input image)`
-            : 'Will match your reference image dimensions'}
+            ? `${referenceDimensions.width}x${referenceDimensions.height} (matches input)`
+            : 'Will match your reference image'}
         </div>
       </div>
     );
@@ -38,7 +35,6 @@ export default function LayoutSelector({
 
   const layouts = getLayoutsForModel(selectedModel, hasReferenceImage);
 
-  // Build display label with dimensions
   const getDisplayLabel = (layout: LayoutConfig): string => {
     if (layout.value === 'reference' && referenceDimensions) {
       return `${referenceDimensions.width}x${referenceDimensions.height}`;
@@ -47,24 +43,22 @@ export default function LayoutSelector({
   };
 
   return (
-    <div className="mb-6">
-      <label className="block text-black font-medium mb-3">
-        Image Layout
-      </label>
-      <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-4">
+    <div className="space-y-2">
+      <label className="block text-sm font-medium text-studio-text">Layout</label>
+      <div className="grid grid-cols-2 gap-2">
         {layouts.map((layout) => (
           <button
             key={layout.value}
             onClick={() => onSelect(layout.value)}
-            className={`sm:flex-1 px-3 py-3 rounded-lg border-2 transition-all ${
+            className={`px-3 py-2.5 rounded-lg border transition-colors text-center ${
               selectedLayout === layout.value
-                ? 'bg-blue-500 text-white border-blue-500'
-                : 'bg-white/90 backdrop-blur-sm text-black border-black/20 hover:border-blue-300 active:bg-blue-50'
+                ? 'bg-studio-accent/10 text-studio-accent border-studio-accent'
+                : 'bg-studio-elevated text-studio-muted border-studio-border hover:border-studio-muted'
             }`}
           >
-            <div className="text-xl sm:text-2xl mb-1">{layout.icon}</div>
-            <div className="text-xs sm:text-sm font-medium">{layout.label}</div>
-            <div className="text-xs opacity-70">{getDisplayLabel(layout)}</div>
+            <div className="text-lg mb-0.5">{layout.icon}</div>
+            <div className="text-xs font-medium">{layout.label}</div>
+            <div className="text-[10px] opacity-70">{getDisplayLabel(layout)}</div>
           </button>
         ))}
       </div>

@@ -13,14 +13,10 @@ interface ImagePreviewProps {
 export default function ImagePreview({ imageUrl, layout, referenceDimensions }: ImagePreviewProps) {
   const [imageError, setImageError] = useState(false);
 
-  // Convert data URI to blob URL for opening in new tab and downloading
   const { blobUrl, isBlob } = useMemo(() => {
-    // If it's already a regular URL (http/https), use it directly
     if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
       return { blobUrl: imageUrl, isBlob: false };
     }
-    
-    // If it's a data URI, convert to blob URL
     if (imageUrl.startsWith('data:image')) {
       try {
         const [header, base64Data] = imageUrl.split(',');
@@ -32,16 +28,13 @@ export default function ImagePreview({ imageUrl, layout, referenceDimensions }: 
         }
         const blob = new Blob([bytes], { type: mimeType });
         return { blobUrl: URL.createObjectURL(blob), isBlob: true };
-      } catch (error) {
-        console.error('Failed to convert data URI to blob:', error);
-        return { blobUrl: imageUrl, isBlob: false }; // Fallback to original
+      } catch {
+        return { blobUrl: imageUrl, isBlob: false };
       }
     }
-    
     return { blobUrl: imageUrl, isBlob: false };
   }, [imageUrl]);
 
-  // Clean up blob URL when component unmounts or image URL changes
   useEffect(() => {
     const previousBlobUrl = blobUrl;
     return () => {
@@ -51,71 +44,70 @@ export default function ImagePreview({ imageUrl, layout, referenceDimensions }: 
     };
   }, [blobUrl, isBlob]);
 
-  const getAspectRatio = () => {
+  const getMaxDimensions = () => {
     switch (layout) {
       case 'landscape':
-        return 'aspect-[16/9]';
+        return 'max-w-full max-h-[80vh] aspect-[16/9]';
       case 'mobile':
-        return 'aspect-[9/16]';
+        return 'max-w-sm max-h-[80vh] aspect-[9/16]';
       case 'square':
-        return 'aspect-square';
+        return 'max-w-2xl max-h-[80vh] aspect-square';
       case 'reference':
         if (referenceDimensions) {
-          const aspectRatio = referenceDimensions.width / referenceDimensions.height;
-          return `aspect-[${aspectRatio}]`;
+          const ratio = referenceDimensions.width / referenceDimensions.height;
+          if (ratio > 1) return 'max-w-full max-h-[80vh]';
+          return 'max-w-sm max-h-[80vh]';
         }
-        return 'aspect-square'; // Fallback
+        return 'max-w-2xl max-h-[80vh] aspect-square';
       default:
-        return 'aspect-square';
+        return 'max-w-2xl max-h-[80vh] aspect-square';
     }
+  };
+
+  const getDownloadFilename = () => {
+    const extension = imageUrl.includes('image/png') ? 'png' :
+                     imageUrl.includes('image/jpeg') || imageUrl.includes('image/jpg') ? 'jpg' :
+                     imageUrl.includes('image/webp') ? 'webp' : 'png';
+    return `generated-image.${extension}`;
   };
 
   const handleOpenInNewTab = () => {
     window.open(blobUrl, '_blank', 'noopener,noreferrer');
   };
 
-  const getDownloadFilename = () => {
-    const extension = imageUrl.includes('image/png') ? 'png' : 
-                     imageUrl.includes('image/jpeg') || imageUrl.includes('image/jpg') ? 'jpg' :
-                     imageUrl.includes('image/webp') ? 'webp' : 'png';
-    return `generated-image.${extension}`;
-  };
+  if (imageError) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p className="text-studio-muted">Failed to load image</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-lg border border-black/10 p-8">
-      <h2 className="text-2xl font-bold text-black mb-6">Generated Image</h2>
-      
-      {imageError ? (
-        <div className={`${getAspectRatio()} bg-gray-100 rounded-lg flex items-center justify-center border border-black/10`}>
-          <p className="text-black/60">Failed to load image</p>
-        </div>
-      ) : (
-        <div className={`${getAspectRatio()} rounded-lg overflow-hidden border border-black/10`}>
-          <img
-            src={imageUrl}
-            alt="Generated image"
-            className="w-full h-full object-cover"
-            onError={() => setImageError(true)}
-          />
-        </div>
-      )}
+    <div className="relative group">
+      <img
+        src={imageUrl}
+        alt="Generated image"
+        className={`${getMaxDimensions()} object-contain mx-auto rounded-lg`}
+        onError={() => setImageError(true)}
+      />
 
-      <div className="mt-6 flex gap-4">
+      {/* Floating action bar */}
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
         <a
           href={blobUrl}
           download={getDownloadFilename()}
-          className="flex-1 px-6 py-3 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 active:bg-blue-700 transition-colors text-center"
+          className="px-4 py-2 bg-studio-surface/90 backdrop-blur-sm text-studio-text text-sm font-medium rounded-lg border border-studio-border hover:bg-studio-elevated transition-colors"
         >
-          Download Image
+          Download
         </a>
         <button
           onClick={handleOpenInNewTab}
-          className="flex-1 px-6 py-3 bg-white/90 backdrop-blur-sm text-black font-semibold rounded-lg border border-black/20 hover:border-blue-300 transition-colors text-center"
+          className="px-4 py-2 bg-studio-surface/90 backdrop-blur-sm text-studio-text text-sm font-medium rounded-lg border border-studio-border hover:bg-studio-elevated transition-colors"
         >
-          Open in New Tab
+          Open in Tab
         </button>
       </div>
     </div>
   );
 }
-
