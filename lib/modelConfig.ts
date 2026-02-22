@@ -29,9 +29,9 @@ export const MODEL_CAPABILITIES: Record<Model, ModelCapabilities> = {
     requiresReferenceImage: false,
   },
   grok: {
-    supportsReferenceImages: false,
+    supportsReferenceImages: true,
     supportsLayoutSelection: true,
-    supportedLayouts: ['landscape', 'mobile', 'square'],
+    supportedLayouts: ['landscape', 'mobile', 'square', 'reference'],
     requiresReferenceImage: false,
   },
   huggingface: {
@@ -57,11 +57,12 @@ export const MODEL_LAYOUT_CONFIGS: Record<Model, LayoutConfig[]> = {
     { value: 'mobile', label: 'Mobile', dimensions: '1152x2048', width: 1152, height: 2048, icon: '▯' },
     { value: 'square', label: 'Square', dimensions: '2048x2048', width: 2048, height: 2048, icon: '▢' },
   ],
-  // Grok: Uses fixed dimensions
+  // Grok: Uses aspect ratio strings (resolution handled by API)
   grok: [
-    { value: 'landscape', label: 'Landscape', dimensions: '1024x576', width: 1024, height: 576, icon: '▭' },
-    { value: 'mobile', label: 'Mobile', dimensions: '576x1024', width: 576, height: 1024, icon: '▯' },
-    { value: 'square', label: 'Square', dimensions: '1024x1024', width: 1024, height: 1024, icon: '▢' },
+    { value: 'landscape', label: 'Landscape', dimensions: '16:9', width: 1024, height: 576, icon: '▭' },
+    { value: 'mobile', label: 'Mobile', dimensions: '9:16', width: 576, height: 1024, icon: '▯' },
+    { value: 'square', label: 'Square', dimensions: '1:1', width: 1024, height: 1024, icon: '▢' },
+    { value: 'reference', label: 'Reference', dimensions: 'Auto', width: 0, height: 0, icon: '📐' },
   ],
   // Flux (HuggingFace): Supports HD dimensions
   huggingface: [
@@ -90,6 +91,14 @@ export const GOOGLE_ASPECT_RATIOS: Record<Layout, string> = {
   mobile: '9:16',
   square: '1:1',
   reference: '1:1', // Fallback, not used
+};
+
+// Grok-specific: Maps layouts to aspect ratio strings for the API
+export const GROK_ASPECT_RATIOS: Record<Layout, string> = {
+  landscape: '16:9',
+  mobile: '9:16',
+  square: '1:1',
+  reference: '1:1',
 };
 
 // Get layout configuration by layout type for a specific model

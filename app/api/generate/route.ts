@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { InferenceClient } from '@huggingface/inference';
-import { Layout, Model, MODEL_CAPABILITIES, getLayoutDimensions, GOOGLE_ASPECT_RATIOS } from '@/lib/modelConfig';
+import { Layout, Model, MODEL_CAPABILITIES, getLayoutDimensions, GOOGLE_ASPECT_RATIOS, GROK_ASPECT_RATIOS } from '@/lib/modelConfig';
 
 // Helper function to extract base64 data and mimeType from data URI
 function parseImageData(dataUri: string): { mimeType: string; data: string } {
@@ -33,7 +33,7 @@ async function generateWithGoogle(prompt: string, layout: Layout, imageData?: st
 
     // Use Google Generative AI (Gemini) API for image generation
     // For image-to-image generation, use a model that supports image generation
-    const model = process.env.GOOGLE_MODEL || (imageData ? 'gemini-2.5-flash-image' : 'gemini-2.0-flash-exp');
+    const model = process.env.GOOGLE_MODEL || 'gemini-2.5-flash-image';
     const apiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
     
     // When a reference image is provided, enhance the prompt to explicitly reference it
@@ -155,76 +155,34 @@ async function generateWithGoogle(prompt: string, layout: Layout, imageData?: st
   return imageUrl;
 }
 
-async function generateWithGrok(prompt: string, layout: Layout, imageData?: string, referenceDimensions?: { width: number; height: number }): Promise<string> {
-  const { width, height } = getLayoutDimensions(layout, referenceDimensions, 'grok');
+async function generateWithGrok(prompt: string, layout: Layout, imageData?: string): Promise<string> {
   const apiKey = process.env.GROK_API_KEY || process.env.XAI_API_KEY;
-  
+
   if (!apiKey) {
     throw new Error('GROK_API_KEY or XAI_API_KEY is not configured. Please add it to your .env.local file.');
   }
 
-  // xAI Grok Image Generation API
-  // Documentation: https://docs.x.ai/docs/api-reference#image-generations
-  // Must use /images/generations endpoint, not /chat/completions
-  // Model: grok-2-image-1212 is the current image generation model
-  // Note: Grok currently supports fixed 4:3 aspect ratio (1024x768), but we pass dimensions
-  // in case the API supports them in future updates
-  // IMPORTANT: The /images/generations endpoint does NOT support reference images for image-to-image generation.
-  // Reference images are only supported for vision models via /chat/completions endpoint (for image understanding, not generation).
-  
-  const layoutDescription = layout === 'landscape' 
-    ? 'Create a landscape image (16:9 aspect ratio, wide format).'
-    : layout === 'mobile'
-    ? 'Create a portrait image (9:16 aspect ratio, tall format).'
-    : 'Create a square image (1:1 aspect ratio).';
-  
-  // When a reference image is provided, enhance the prompt to explicitly reference it
-  // Note: Grok's /images/generations endpoint doesn't support reference images, so we enhance the text prompt instead
-  const basePrompt = imageData 
-    ? `Based on this reference image, ${prompt}`
-    : prompt;
-  
-  const enhancedPrompt = `${basePrompt}\n\n${layoutDescription}`;
-  
-  // xAI API endpoint for image generation
-  // Documentation: https://docs.x.ai/docs/api-reference#image-generations
-  const apiEndpoint = 'https://api.x.ai/v1/images/generations';
-  
-  // Use grok-2-image-1212 for image generation (dedicated image generation model)
-  // You can override with GROK_MODEL environment variable
-  const model = process.env.GROK_MODEL || 'grok-2-image-1212';
-  
-  // Request body format for /images/generations endpoint
-  // Based on xAI API documentation: https://docs.x.ai/docs/api-reference#image-generations
-  // The /images/generations endpoint does NOT support reference images for image-to-image generation.
-  // We enhance the text prompt instead when a reference image is provided.
-  const requestBody: any = {
-    model: model,
-    prompt: enhancedPrompt,
-    width: width,
-    height: height,
-    // Optional parameters (check documentation for supported options)
-    // n: number of images to generate (default: 1, max: 10)
-    // quality: image quality (if supported)
-    // style: image style (if supported)
-  };
-  
-  // Log a warning when reference image is provided
-  // Grok's /images/generations endpoint doesn't support reference images, so we enhance the prompt textually
-  if (imageData) {
-    console.warn('Grok /images/generations endpoint does not support reference images. Enhancing prompt textually instead.');
-  }
-  
-  console.log('Calling xAI Grok Image Generation API:', { 
-    endpoint: apiEndpoint, 
-    model: model,
-    prompt, 
+  const model = process.env.GROK_MODEL || 'grok-imagine-image';
+  const aspect_ratio = GROK_ASPECT_RATIOS[layout];
+
+  // Use /images/edits when a reference image is provided, /images/generations otherwise
+  const apiEndpoint = imageData
+    ? 'https://api.x.ai/v1/images/edits'
+    : 'https://api.x.ai/v1/images/generations';
+
+  const requestBody: any = imageData
+    ? { model, prompt, image_url: imageData, n: 1, response_format: 'b64_json' }
+    : { model, prompt, aspect_ratio, n: 1, response_format: 'b64_json' };
+
+  console.log('Calling xAI Grok Image Generation API:', {
+    endpoint: apiEndpoint,
+    model,
+    prompt,
     layout,
-    width,
-    height,
-    enhancedPrompt,
+    aspect_ratio,
+    hasReferenceImage: !!imageData,
   });
-  
+
   const response = await fetch(apiEndpoint, {
     method: 'POST',
     headers: {
@@ -585,7 +543,7 @@ export async function POST(request: NextRequest) {
       if (selectedModel === 'huggingface') {
         imageUrl = await generateWithHuggingFace(prompt, layout, imageData, refDims);
       } else if (selectedModel === 'grok') {
-        imageUrl = await generateWithGrok(prompt, layout, imageData, refDims);
+        imageUrl = await generateWithGrok(prompt, layout, imageData);
       } else if (selectedModel === 'qwen') {
         imageUrl = await generateWithQwen(prompt, layout, imageData!, refDims);
       } else {

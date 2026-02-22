@@ -160,7 +160,7 @@ export default function ImageStudio() {
       setSelectedLayout('square');
       setError(`${selectedLayout} layout is not supported with this model. Switched to square layout.`);
     } else if (!newCapabilities.supportsReferenceImages && uploadedImage && prevCapabilities.supportsReferenceImages) {
-      // Switching to model that doesn't support reference images (e.g., Grok)
+      // Switching to model that doesn't support reference images
       setError('Reference images are not supported with this model. Your image will be preserved when you switch to another model.');
     } else if (prevCapabilities.supportsReferenceImages || newCapabilities.supportsReferenceImages) {
       setError(null);
@@ -179,11 +179,7 @@ export default function ImageStudio() {
     setGeneratedImage(null);
 
     try {
-      // Don't pass uploadedImage to Grok API as it doesn't support reference images
-      // Flux and Qwen support reference images, so pass it for those models
-      const imageDataToSend = selectedModel === 'grok' 
-        ? undefined 
-        : (uploadedImage || undefined);
+      const imageDataToSend = uploadedImage || undefined;
       
       // For reference layout, pass dimensions if available
       const layoutToUse = selectedLayout === 'reference' && referenceImageDimensions 
@@ -244,35 +240,8 @@ export default function ImageStudio() {
             <div className="mb-6">
               <label className="block text-black font-medium mb-2">
                 Reference Image {selectedModel === 'qwen' ? '(Required)' : '(Optional)'}
-                {selectedModel === 'grok' && (
-                  <span className="text-xs text-amber-600 ml-2 font-normal">
-                    (Not supported by Grok)
-                  </span>
-                )}
               </label>
-              {selectedModel === 'grok' ? (
-                <div className="border-2 border-dashed rounded-lg p-6 text-center bg-gray-50 border-gray-300">
-                  <svg
-                    className="w-12 h-12 text-gray-400 mb-2 mx-auto"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
-                    />
-                  </svg>
-                  <p className="text-sm text-gray-600 mb-1">
-                    Reference images not supported with Grok
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    Switch to Google, Flux, or Qwen to use reference images
-                  </p>
-                </div>
-              ) : !uploadedImage ? (
+              {!uploadedImage ? (
                 <div
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
