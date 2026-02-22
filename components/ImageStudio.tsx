@@ -11,6 +11,31 @@ import { Layout, Model, MODEL_CAPABILITIES } from '@/lib/modelConfig';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+const MAX_IMAGE_DIMENSION = 1024; // Max pixels on longest side for reference images
+const COMPRESSION_QUALITY = 0.8;
+
+function compressImage(dataUrl: string, maxDim: number, quality: number): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      let { width, height } = img;
+      if (width > maxDim || height > maxDim) {
+        const scale = maxDim / Math.max(width, height);
+        width = Math.round(width * scale);
+        height = Math.round(height * scale);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { reject(new Error('Failed to get canvas context')); return; }
+      ctx.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => reject(new Error('Failed to load image for compression'));
+    img.src = dataUrl;
+  });
+}
 
 export default function ImageStudio() {
   const [prompt, setPrompt] = useState('');
@@ -43,18 +68,24 @@ export default function ImageStudio() {
 
     setError(null);
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       const result = e.target?.result;
       if (typeof result === 'string') {
-        setUploadedImage(result);
-        // Extract dimensions from the image
+        // Extract original dimensions before compression
         const img = new Image();
-        img.onload = () => {
+        img.onload = async () => {
           setReferenceImageDimensions({ width: img.width, height: img.height });
           // Only auto-select 'reference' layout if the model supports it
           const capabilities = MODEL_CAPABILITIES[selectedModel];
           if (capabilities.supportedLayouts.includes('reference')) {
             setSelectedLayout('reference');
+          }
+          // Compress image to avoid 413 Payload Too Large errors
+          try {
+            const compressed = await compressImage(result, MAX_IMAGE_DIMENSION, COMPRESSION_QUALITY);
+            setUploadedImage(compressed);
+          } catch {
+            setUploadedImage(result);
           }
         };
         img.onerror = () => {
