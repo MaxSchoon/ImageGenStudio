@@ -6,12 +6,13 @@ A modern image generation application built with Next.js, React, and Tailwind CS
 
 - 🎨 Modern glass morphism design
 - 📱 Multiple layout options (Landscape, Mobile, Square)
-- ⚡ Fast image generation using Google Gemini, xAI Grok, Hugging Face FLUX.1-Kontext, or Qwen
+- ⚡ Fast image generation using Google Gemini (Nano Banana 2), xAI Grok, Hugging Face FLUX.1-Kontext, or Qwen
 - 🤖 Model switching between Google, Grok, FLUX.1-Kontext, and Qwen
 - 🖼️ Image preview and download
 - ⏳ Beautiful loading screen
 - ✍️ AI-powered text autocomplete and spell correction
 - 🖼️ Image-to-image generation with reference images (Google Gemini, FLUX.1-Kontext, and Qwen)
+- 🔒 Password-protected access
 
 ## Getting Started
 
@@ -41,15 +42,23 @@ npm run dev
 
 Create a `.env.local` file in the root directory with the following variables:
 
+#### Site Access Password
+
+```bash
+SITE_PASSWORD=        # Set an 8-character password to protect access to the app
+```
+
+- **SITE_PASSWORD**: Password required to access the app (required). Users must enter this password on the login page before they can use the studio.
+
 #### Google Generative AI API Setup
 
 ```bash
 GOOGLE_API_KEY=your_google_api_key_here
-GOOGLE_MODEL=gemini-2.5-flash-image  # Optional, defaults to gemini-2.5-flash-image for image generation
+GOOGLE_MODEL=gemini-3.1-flash-image-preview  # Optional, defaults to gemini-3.1-flash-image-preview (Nano Banana 2)
 ```
 
 - **GOOGLE_API_KEY**: Your Google API key (required) - Get it from [Google AI Studio](https://aistudio.google.com/app/apikey)
-- **GOOGLE_MODEL**: The model name (optional, defaults to `gemini-2.5-flash-image` for image generation)
+- **GOOGLE_MODEL**: The model name (optional, defaults to `gemini-3.1-flash-image-preview` / Nano Banana 2)
 
 **Image Generation**: The app uses Gemini's native image generation capabilities. See the [documentation](https://ai.google.dev/gemini-api/docs/image-generation) for details.
 
@@ -133,22 +142,33 @@ HF_MODEL2=Qwen/Qwen-Image-Edit  # Qwen image-to-image model (default: Qwen/Qwen-
 ImageGen/
 ├── app/
 │   ├── api/
+│   │   ├── auth/
+│   │   │   └── route.ts      # Authentication endpoint
 │   │   ├── complete/
 │   │   │   └── route.ts      # API route for text autocomplete/correction
 │   │   └── generate/
-│   │       └── route.ts      # API route for image generation
+│   │       └── route.ts      # API route for image generation (Google, Grok, HF, Qwen)
+│   ├── login/
+│   │   └── page.tsx          # Password-protected login page
 │   ├── globals.css           # Global styles
 │   ├── layout.tsx            # Root layout
 │   └── page.tsx              # Home page
 ├── components/
-│   ├── AutocompleteTextarea.tsx  # Textarea with AI autocomplete and correction
-│   ├── ImagePreview.tsx      # Image preview component
-│   ├── ImageStudio.tsx       # Main studio component
+│   ├── Footer.tsx            # Footer component
+│   ├── ImagePreview.tsx      # Image preview and download
+│   ├── ImageStudio.tsx       # Main studio orchestrator
 │   ├── LayoutSelector.tsx    # Layout selection UI
-│   ├── LoadingScreen.tsx     # Loading state component
-│   └── ModelSelector.tsx    # Model selection UI (Google/Grok)
-└── lib/
-    └── nanobanana.ts         # Image generation client wrapper
+│   ├── LoadingOverlay.tsx    # Loading state overlay
+│   ├── MobileBottomSheet.tsx # Mobile UI bottom sheet
+│   ├── ModelSelector.tsx     # Model selection dropdown
+│   ├── PromptInput.tsx       # Prompt input with autocomplete
+│   ├── ReferenceUpload.tsx   # Reference image upload
+│   └── StudioControls.tsx    # Studio control panel
+├── lib/
+│   ├── auth.ts               # Authentication utilities
+│   ├── modelConfig.ts        # Model capabilities and layout configs
+│   └── nanobanana.ts         # Image generation client wrapper
+└── middleware.ts              # Auth middleware for route protection
 ```
 
 ## Features in Detail
@@ -201,7 +221,8 @@ To bypass geographic restrictions with Google's image generation API, deploy you
    - Import your GitHub repository
    - Add your environment variables:
      - `GOOGLE_API_KEY`: Your Google API key (required for Google model)
-     - `GOOGLE_MODEL`: `gemini-2.5-flash-image` (optional)
+     - `SITE_PASSWORD`: Your chosen 8-character password (required)
+     - `GOOGLE_MODEL`: `gemini-3.1-flash-image-preview` (optional)
      - `GROK_API_KEY` or `XAI_API_KEY`: Your Grok API key (required for Grok model)
      - `GROK_MODEL`: `grok-2-image-1212` (optional)
      - `GROK_COMPLETION_MODEL`: `grok-4-fast-non-reasoning` (optional)
