@@ -33,7 +33,7 @@ async function generateWithGoogle(prompt: string, layout: Layout, imageData?: st
 
     // Use Google Generative AI (Gemini) API for image generation
     // For image-to-image generation, use a model that supports image generation
-    const model = process.env.GOOGLE_MODEL || 'gemini-2.5-flash-image';
+    const model = process.env.GOOGLE_MODEL || 'gemini-3.1-flash-image-preview';
     const apiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
     
     // When a reference image is provided, enhance the prompt to explicitly reference it
