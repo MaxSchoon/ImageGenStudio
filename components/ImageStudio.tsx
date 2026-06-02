@@ -52,6 +52,11 @@ export default function ImageStudio() {
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [bottomSheetOpen, setBottomSheetOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const loadingMode = selectedCreatorPreset?.workflow === 'storybook'
+    ? 'storybook'
+    : selectedCreatorPreset?.workflow === 'enhance'
+      ? 'enhance'
+      : 'image';
 
   const validateFile = (file: File): string | null => {
     if (!ALLOWED_FILE_TYPES.includes(file.type)) {
@@ -289,7 +294,13 @@ export default function ImageStudio() {
 
       {/* Canvas */}
       <div className="flex-1 relative flex items-center justify-center bg-studio-bg p-4 overflow-hidden">
-        {isLoading && <LoadingOverlay />}
+        {isLoading && (
+          <LoadingOverlay
+            mode={loadingMode}
+            label={selectedCreatorPreset?.shortLabel}
+            dimensions={selectedCreatorPreset?.dimensions}
+          />
+        )}
         {generatedImage && !isLoading && (
           <ImagePreview
             imageUrl={generatedImage}

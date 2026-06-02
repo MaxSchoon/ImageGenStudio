@@ -49,3 +49,45 @@ body {
 .pb-safe-area {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
+
+.loading-tile::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(99, 102, 241, 0.18),
+    transparent
+  );
+  animation: loadingTileSweep 2.8s ease-out infinite;
+}
+
+.loading-progress {
+  transition: width 700ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes loadingTileSweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  55% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-tile::after {
+    animation: none;
+    transform: translateX(0);
+    opacity: 0.18;
+  }
+
+  .loading-progress {
+    transition: none;
+  }
+}
