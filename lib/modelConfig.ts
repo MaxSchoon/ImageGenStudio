@@ -1,6 +1,15 @@
-// Shared types for image generation models and layouts
+// Shared types for OpenRouter image models and layouts
 export type Layout = 'landscape' | 'mobile' | 'square' | 'reference';
-export type Model = 'google' | 'grok' | 'huggingface' | 'qwen';
+export type Model =
+  | 'nano-banana-2'
+  | 'nano-banana-pro'
+  | 'gpt-image-2'
+  | 'seedream-4-5'
+  | 'flux-2-pro'
+  | 'recraft-4-1-pro'
+  | 'grok-imagine-quality';
+
+export type OutputModality = 'image' | 'text';
 
 // Layout configuration with dimensions
 export interface LayoutConfig {
@@ -20,101 +29,149 @@ export interface ModelCapabilities {
   requiresReferenceImage: boolean;
 }
 
-// Central configuration for model capabilities
-export const MODEL_CAPABILITIES: Record<Model, ModelCapabilities> = {
-  google: {
-    supportsReferenceImages: true,
-    supportsLayoutSelection: true,
-    supportedLayouts: ['landscape', 'mobile', 'square'],
-    requiresReferenceImage: false,
-  },
-  grok: {
-    supportsReferenceImages: true,
-    supportsLayoutSelection: true,
-    supportedLayouts: ['landscape', 'mobile', 'square', 'reference'],
-    requiresReferenceImage: false,
-  },
-  huggingface: {
-    supportsReferenceImages: true,
-    supportsLayoutSelection: true,
-    supportedLayouts: ['landscape', 'mobile', 'square', 'reference'],
-    requiresReferenceImage: false,
-  },
-  qwen: {
-    supportsReferenceImages: true,
-    supportsLayoutSelection: false,
-    supportedLayouts: ['reference'],
-    requiresReferenceImage: true,
-  },
-};
+export interface ModelOption {
+  value: Model;
+  label: string;
+  shortLabel: string;
+  description: string;
+  openRouterModel: string;
+  outputModalities: OutputModality[];
+  imageSize?: '0.5K' | '1K' | '2K' | '4K';
+  supportsImageConfig: boolean;
+}
 
-// Model-specific layout configurations with dimensions
-// Each model has different supported dimensions based on their API specifications
-export const MODEL_LAYOUT_CONFIGS: Record<Model, LayoutConfig[]> = {
-  // Google: Uses 2K resolution (~2048px) with aspect ratios
-  google: [
-    { value: 'landscape', label: 'Landscape', dimensions: '2048x1152', width: 2048, height: 1152, icon: '▭' },
-    { value: 'mobile', label: 'Mobile', dimensions: '1152x2048', width: 1152, height: 2048, icon: '▯' },
-    { value: 'square', label: 'Square', dimensions: '2048x2048', width: 2048, height: 2048, icon: '▢' },
-  ],
-  // Grok: Uses aspect ratio strings (resolution handled by API)
-  grok: [
-    { value: 'landscape', label: 'Landscape', dimensions: '16:9', width: 1024, height: 576, icon: '▭' },
-    { value: 'mobile', label: 'Mobile', dimensions: '9:16', width: 576, height: 1024, icon: '▯' },
-    { value: 'square', label: 'Square', dimensions: '1:1', width: 1024, height: 1024, icon: '▢' },
-    { value: 'reference', label: 'Reference', dimensions: 'Auto', width: 0, height: 0, icon: '📐' },
-  ],
-  // Flux (HuggingFace): Supports HD dimensions
-  huggingface: [
-    { value: 'landscape', label: 'Landscape', dimensions: '1920x1080', width: 1920, height: 1080, icon: '▭' },
-    { value: 'mobile', label: 'Mobile', dimensions: '1080x1920', width: 1080, height: 1920, icon: '▯' },
-    { value: 'square', label: 'Square', dimensions: '1024x1024', width: 1024, height: 1024, icon: '▢' },
-    { value: 'reference', label: 'Reference', dimensions: 'Auto', width: 0, height: 0, icon: '📐' },
-  ],
-  // Qwen: Only reference layout, dimensions match input image
-  qwen: [
-    { value: 'reference', label: 'Reference', dimensions: 'Auto', width: 0, height: 0, icon: '📐' },
-  ],
-};
+export const DEFAULT_MODEL: Model = 'nano-banana-2';
 
-// Default layout configs (used as fallback)
-export const LAYOUT_CONFIGS: LayoutConfig[] = [
-  { value: 'landscape', label: 'Landscape', dimensions: '1920x1080', width: 1920, height: 1080, icon: '▭' },
-  { value: 'mobile', label: 'Mobile', dimensions: '1080x1920', width: 1080, height: 1920, icon: '▯' },
-  { value: 'square', label: 'Square', dimensions: '1024x1024', width: 1024, height: 1024, icon: '▢' },
-  { value: 'reference', label: 'Reference', dimensions: 'Auto', width: 0, height: 0, icon: '📐' },
+// Current SOTA image models available through OpenRouter image output models.
+export const OPENROUTER_IMAGE_MODELS: ModelOption[] = [
+  {
+    value: 'nano-banana-2',
+    label: 'Nano Banana 2',
+    shortLabel: 'Banana 2',
+    description: 'Fast current-gen Gemini image generation and editing.',
+    openRouterModel: 'google/gemini-3.1-flash-image-preview',
+    outputModalities: ['image', 'text'],
+    imageSize: '2K',
+    supportsImageConfig: true,
+  },
+  {
+    value: 'nano-banana-pro',
+    label: 'Nano Banana Pro',
+    shortLabel: 'Banana Pro',
+    description: 'Premium Gemini reasoning for complex creative direction.',
+    openRouterModel: 'google/gemini-3-pro-image-preview',
+    outputModalities: ['image', 'text'],
+    imageSize: '2K',
+    supportsImageConfig: true,
+  },
+  {
+    value: 'gpt-image-2',
+    label: 'GPT Image 2',
+    shortLabel: 'GPT Image',
+    description: 'OpenAI high-end instruction following and text rendering.',
+    openRouterModel: 'openai/gpt-5.4-image-2',
+    outputModalities: ['image', 'text'],
+    imageSize: '2K',
+    supportsImageConfig: true,
+  },
+  {
+    value: 'seedream-4-5',
+    label: 'Seedream 4.5',
+    shortLabel: 'Seedream',
+    description: 'Strong image editing consistency and subject preservation.',
+    openRouterModel: 'bytedance-seed/seedream-4.5',
+    outputModalities: ['image'],
+    imageSize: '2K',
+    supportsImageConfig: true,
+  },
+  {
+    value: 'flux-2-pro',
+    label: 'FLUX.2 Pro',
+    shortLabel: 'FLUX.2',
+    description: 'Frontier visual quality with reliable prompt adherence.',
+    openRouterModel: 'black-forest-labs/flux.2-pro',
+    outputModalities: ['image'],
+    imageSize: '2K',
+    supportsImageConfig: true,
+  },
+  {
+    value: 'recraft-4-1-pro',
+    label: 'Recraft V4.1 Pro',
+    shortLabel: 'Recraft',
+    description: 'Aesthetic design work for brand and marketing assets.',
+    openRouterModel: 'recraft/recraft-v4.1-pro',
+    outputModalities: ['image'],
+    imageSize: '2K',
+    supportsImageConfig: true,
+  },
+  {
+    value: 'grok-imagine-quality',
+    label: 'Grok Imagine Quality',
+    shortLabel: 'Grok',
+    description: 'Fast high-fidelity generation and editing from xAI.',
+    openRouterModel: 'x-ai/grok-imagine-image-quality',
+    outputModalities: ['image'],
+    imageSize: '2K',
+    supportsImageConfig: true,
+  },
 ];
 
-// Google-specific: Maps layouts to aspect ratio strings for the API
-export const GOOGLE_ASPECT_RATIOS: Record<Layout, string> = {
-  landscape: '16:9',
-  mobile: '9:16',
-  square: '1:1',
-  reference: '1:1', // Fallback, not used
-};
+export const OPENROUTER_MODEL_BY_VALUE = OPENROUTER_IMAGE_MODELS.reduce(
+  (acc, model) => {
+    acc[model.value] = model;
+    return acc;
+  },
+  {} as Record<Model, ModelOption>
+);
 
-// Grok-specific: Maps layouts to aspect ratio strings for the API
-export const GROK_ASPECT_RATIOS: Record<Layout, string> = {
+// Central configuration for model capabilities.
+export const MODEL_CAPABILITIES: Record<Model, ModelCapabilities> = OPENROUTER_IMAGE_MODELS.reduce(
+  (acc, model) => {
+    acc[model.value] = {
+      supportsReferenceImages: true,
+      supportsLayoutSelection: true,
+      supportedLayouts: ['landscape', 'mobile', 'square', 'reference'],
+      requiresReferenceImage: false,
+    };
+    return acc;
+  },
+  {} as Record<Model, ModelCapabilities>
+);
+
+// OpenRouter image_config aspect ratios.
+export const OPENROUTER_ASPECT_RATIOS: Record<Layout, string> = {
   landscape: '16:9',
   mobile: '9:16',
   square: '1:1',
   reference: '1:1',
 };
 
+export const MODEL_LAYOUT_CONFIGS: Record<Model, LayoutConfig[]> = OPENROUTER_IMAGE_MODELS.reduce(
+  (acc, model) => {
+    acc[model.value] = [
+      { value: 'landscape', label: 'Landscape', dimensions: '16:9', width: 1344, height: 768, icon: '▭' },
+      { value: 'mobile', label: 'Mobile', dimensions: '9:16', width: 768, height: 1344, icon: '▯' },
+      { value: 'square', label: 'Square', dimensions: '1:1', width: 1024, height: 1024, icon: '▢' },
+      { value: 'reference', label: 'Reference', dimensions: 'Auto', width: 0, height: 0, icon: '📐' },
+    ];
+    return acc;
+  },
+  {} as Record<Model, LayoutConfig[]>
+);
+
+// Default layout configs (used as fallback)
+export const LAYOUT_CONFIGS: LayoutConfig[] = MODEL_LAYOUT_CONFIGS[DEFAULT_MODEL];
+
 // Get layout configuration by layout type for a specific model
-export function getLayoutConfig(layout: Layout, model?: Model): LayoutConfig {
-  if (model) {
-    const modelConfigs = MODEL_LAYOUT_CONFIGS[model];
-    const config = modelConfigs.find(l => l.value === layout);
-    if (config) return config;
-  }
-  return LAYOUT_CONFIGS.find(l => l.value === layout) || LAYOUT_CONFIGS[2]; // Default to square
+export function getLayoutConfig(layout: Layout, model: Model = DEFAULT_MODEL): LayoutConfig {
+  const modelConfigs = MODEL_LAYOUT_CONFIGS[model] || LAYOUT_CONFIGS;
+  return modelConfigs.find(l => l.value === layout) || LAYOUT_CONFIGS[2];
 }
 
 // Get available layouts for a specific model
 export function getLayoutsForModel(model: Model, hasReferenceImage: boolean): LayoutConfig[] {
-  const capabilities = MODEL_CAPABILITIES[model];
-  const modelConfigs = MODEL_LAYOUT_CONFIGS[model];
+  const capabilities = MODEL_CAPABILITIES[model] || MODEL_CAPABILITIES[DEFAULT_MODEL];
+  const modelConfigs = MODEL_LAYOUT_CONFIGS[model] || LAYOUT_CONFIGS;
 
   return modelConfigs.filter(layout => {
     if (!capabilities.supportedLayouts.includes(layout.value)) {
@@ -131,11 +188,15 @@ export function getLayoutsForModel(model: Model, hasReferenceImage: boolean): La
 export function getLayoutDimensions(
   layout: Layout,
   referenceDimensions?: { width: number; height: number },
-  model?: Model
+  model: Model = DEFAULT_MODEL
 ): { width: number; height: number } {
   if (layout === 'reference' && referenceDimensions) {
     return referenceDimensions;
   }
   const config = getLayoutConfig(layout, model);
   return { width: config.width, height: config.height };
+}
+
+export function isModel(value: unknown): value is Model {
+  return typeof value === 'string' && value in OPENROUTER_MODEL_BY_VALUE;
 }
