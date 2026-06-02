@@ -6,12 +6,13 @@ interface MobileBottomSheetProps {
   children: React.ReactNode;
   isExpanded: boolean;
   onToggle: () => void;
+  summary?: React.ReactNode;
 }
 
 const COLLAPSED_HEIGHT = 140;
 const DRAG_THRESHOLD = 50;
 
-export default function MobileBottomSheet({ children, isExpanded, onToggle }: MobileBottomSheetProps) {
+export default function MobileBottomSheet({ children, isExpanded, onToggle, summary }: MobileBottomSheetProps) {
   const startYRef = useRef(0);
   const isDraggingRef = useRef(false);
 
@@ -50,18 +51,26 @@ export default function MobileBottomSheet({ children, isExpanded, onToggle }: Mo
       )}
 
       <div className="h-full bg-studio-surface rounded-t-2xl border-t border-studio-border flex flex-col shadow-2xl">
-        {/* Drag handle */}
+        {/* Drag handle and active workflow summary */}
         <div
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
           onClick={onToggle}
-          className="flex-shrink-0 cursor-grab active:cursor-grabbing pt-1 pb-2"
+          className="flex-shrink-0 cursor-grab active:cursor-grabbing px-4 pb-3 pt-1"
         >
           <div className="drag-handle" />
+          {summary && (
+            <div className="flex items-center justify-between gap-3">
+              {summary}
+              <span className="shrink-0 rounded-md border border-studio-border px-2 py-1 text-xs font-medium text-studio-muted">
+                {isExpanded ? 'Hide' : 'Edit'}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto studio-scrollbar px-4 pb-4">
+        <div className={`flex-1 overflow-y-auto studio-scrollbar px-4 pb-4 ${isExpanded ? 'block' : 'hidden'}`}>
           {children}
         </div>
       </div>

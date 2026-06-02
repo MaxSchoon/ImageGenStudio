@@ -5,12 +5,24 @@ interface PromptInputProps {
   onChange: (value: string) => void;
   onEnhance: () => void;
   isEnhancing: boolean;
+  label?: string;
+  description?: string;
 }
 
-export default function PromptInput({ value, onChange, onEnhance, isEnhancing }: PromptInputProps) {
+export default function PromptInput({
+  value,
+  onChange,
+  onEnhance,
+  isEnhancing,
+  label = 'Prompt',
+  description,
+}: PromptInputProps) {
   return (
     <div className="space-y-2">
-      <label className="block text-sm font-medium text-studio-text">Prompt</label>
+      <div>
+        <label className="block text-sm font-medium text-studio-text">{label}</label>
+        {description && <p className="mt-1 text-xs leading-relaxed text-studio-muted">{description}</p>}
+      </div>
       <textarea
         value={value}
         onChange={(e) => onChange(e.target.value)}
