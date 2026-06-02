@@ -5,9 +5,10 @@ import { Model, OPENROUTER_IMAGE_MODELS } from '@/lib/modelConfig';
 interface ModelSelectorProps {
   selectedModel: Model;
   onSelect: (model: Model) => void;
+  disabledModels?: Partial<Record<Model, string>>;
 }
 
-export default function ModelSelector({ selectedModel, onSelect }: ModelSelectorProps) {
+export default function ModelSelector({ selectedModel, onSelect, disabledModels = {} }: ModelSelectorProps) {
   return (
     <div className="space-y-2">
       <label className="block text-sm font-medium text-studio-text">Model</label>
@@ -15,11 +16,16 @@ export default function ModelSelector({ selectedModel, onSelect }: ModelSelector
         {OPENROUTER_IMAGE_MODELS.map((model) => (
           <button
             key={model.value}
+            type="button"
             onClick={() => onSelect(model.value)}
+            disabled={!!disabledModels[model.value]}
+            title={disabledModels[model.value]}
             className={`min-h-[72px] px-3 py-2.5 rounded-lg border text-left transition-colors ${
               selectedModel === model.value
                 ? 'bg-studio-accent/10 text-studio-accent border-studio-accent'
-                : 'bg-studio-elevated text-studio-muted border-studio-border hover:border-studio-muted hover:text-studio-text'
+                : disabledModels[model.value]
+                  ? 'cursor-not-allowed border-studio-border bg-studio-elevated text-studio-muted/40'
+                  : 'bg-studio-elevated text-studio-muted border-studio-border hover:border-studio-muted hover:text-studio-text'
             }`}
           >
             <span className="block text-sm font-semibold leading-tight">{model.shortLabel}</span>

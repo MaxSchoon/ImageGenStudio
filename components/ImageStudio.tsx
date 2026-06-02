@@ -8,7 +8,7 @@ import MobileBottomSheet from './MobileBottomSheet';
 import Footer from './Footer';
 import { generateImage } from '@/lib/imageGeneration';
 import { buildCreatorPrompt, CreatorPreset } from '@/lib/creatorContent';
-import { DEFAULT_MODEL, Layout, Model, MODEL_CAPABILITIES, OPENROUTER_MODEL_BY_VALUE } from '@/lib/modelConfig';
+import { DEFAULT_MODEL, Layout, Model, MODEL_CAPABILITIES, OPENROUTER_MODEL_BY_VALUE, getLayoutConfig } from '@/lib/modelConfig';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
@@ -259,7 +259,7 @@ export default function ImageStudio() {
     onModelSelect: handleModelSelect,
     selectedLayout,
     onLayoutSelect: handleLayoutSelect,
-    selectedCreatorPresetId: selectedCreatorPreset?.id || null,
+    selectedCreatorPreset,
     onCreatorPresetSelect: handleCreatorPresetSelect,
     uploadedImage,
     onFileSelect: handleFileSelect,
@@ -274,15 +274,24 @@ export default function ImageStudio() {
     onGenerate: handleGenerate,
   };
 
+  const layoutConfig = getLayoutConfig(selectedLayout, selectedModel);
+  const activeSummary = selectedCreatorPreset
+    ? {
+        title: selectedCreatorPreset.shortLabel,
+        detail: `${selectedCreatorPreset.dimensions} export via ${OPENROUTER_MODEL_BY_VALUE[selectedModel].shortLabel}`,
+      }
+    : {
+        title: 'Freeform image',
+        detail: `${layoutConfig.label} ${layoutConfig.dimensions} via ${OPENROUTER_MODEL_BY_VALUE[selectedModel].shortLabel}`,
+      };
+
   return (
     <div className="flex h-full">
       {/* Desktop sidebar */}
       <aside className="hidden lg:flex flex-col w-80 xl:w-96 bg-studio-surface border-r border-studio-border flex-shrink-0">
         <div className="p-4 border-b border-studio-border">
           <h1 className="text-lg font-semibold text-studio-text">Image Studio</h1>
-          <p className="text-studio-muted text-xs italic mt-1">
-            &ldquo;It is the glory of God to conceal things, but the glory of kings is to search things out.&rdquo;&mdash;Proverbs 25:2
-          </p>
+          <p className="mt-1 text-xs text-studio-muted">{activeSummary.title} · {activeSummary.detail}</p>
         </div>
         <div className="flex-1 overflow-y-auto studio-scrollbar px-4 py-4">
           <StudioControls {...controlsProps} />
@@ -330,6 +339,12 @@ export default function ImageStudio() {
       <MobileBottomSheet
         isExpanded={bottomSheetOpen}
         onToggle={() => setBottomSheetOpen(!bottomSheetOpen)}
+        summary={
+          <div>
+            <div className="text-sm font-semibold text-studio-text">{activeSummary.title}</div>
+            <div className="mt-0.5 text-xs text-studio-muted">{activeSummary.detail}</div>
+          </div>
+        }
       >
         <StudioControls {...controlsProps} />
       </MobileBottomSheet>
