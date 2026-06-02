@@ -6,7 +6,7 @@ import LayoutSelector from './LayoutSelector';
 import ReferenceUpload from './ReferenceUpload';
 import CreatorWorkflowPanel from './CreatorWorkflowPanel';
 import { CreatorPreset } from '@/lib/creatorContent';
-import { Layout, Model } from '@/lib/modelConfig';
+import { Layout, Model, MODEL_CAPABILITIES } from '@/lib/modelConfig';
 
 interface StudioControlsProps {
   prompt: string;
@@ -92,7 +92,7 @@ export default function StudioControls({
         onDragOver={onDragOver}
         onDragLeave={onDragLeave}
         onDrop={onDrop}
-        isRequired={selectedModel === 'qwen'}
+        isRequired={MODEL_CAPABILITIES[selectedModel].requiresReferenceImage}
       />
 
       <button

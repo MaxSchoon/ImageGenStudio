@@ -13,25 +13,17 @@ export async function POST(request: NextRequest) {
 
     const isCorrection = mode === 'correct';
 
-    // Get API key from environment variables
-    const apiKey = process.env.GROK_API_KEY || process.env.XAI_API_KEY;
+    const apiKey = process.env.OPENROUTER_API_KEY;
     
     if (!apiKey) {
       return NextResponse.json(
-        { error: 'GROK_API_KEY or XAI_API_KEY is not configured. Please add it to your .env.local file.' },
+        { error: 'OPENROUTER_API_KEY is not configured. Please add it to your .env.local file.' },
         { status: 500 }
       );
     }
 
-    // Use Grok chat completions endpoint for text completion
-    // Documentation: https://docs.x.ai/docs/api-reference#chat-completions
-    const apiEndpoint = 'https://api.x.ai/v1/chat/completions';
-    
-    // Use a fast, cost-effective model for low-latency predictions
-    // Default: grok-2-1212 (fast and reliable)
-    // Alternative: grok-3-mini-beta (cheapest at $0.30/$0.50 per million tokens)
-    // You can override with GROK_COMPLETION_MODEL environment variable
-    const model = process.env.GROK_COMPLETION_MODEL || 'grok-2-1212';
+    const apiEndpoint = 'https://openrouter.ai/api/v1/chat/completions';
+    const model = process.env.OPENROUTER_PROMPT_MODEL || process.env.OPENROUTER_CHAT_MODEL || 'openai/gpt-5.4-mini';
     
     // Create different system prompts for completion vs correction
     const systemPrompt = isCorrection
@@ -64,12 +56,12 @@ Rules:
       stream: false, // We want a single completion response
     };
 
-    console.log(`Calling xAI Grok Chat Completions API for text ${isCorrection ? 'correction' : 'completion'}:`, { 
+    console.log(`Calling OpenRouter Chat Completions API for text ${isCorrection ? 'correction' : 'completion'}:`,
+    {
       endpoint: apiEndpoint, 
       model: model,
       mode: isCorrection ? 'correct' : 'complete',
       promptLength: prompt.length,
-      promptPreview: prompt.substring(0, 100),
     });
 
     const response = await fetch(apiEndpoint, {
@@ -77,6 +69,8 @@ Rules:
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
+        'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+        'X-Title': 'ImageGenStudio',
       },
       body: JSON.stringify(requestBody),
     });
@@ -90,14 +84,14 @@ Rules:
       } catch (e) {
         // Keep text as is
       }
-      console.error('xAI Grok API error:', errorMessage);
+      console.error('OpenRouter API error:', errorMessage);
       // Return empty completion on error (don't show ghost text)
       return NextResponse.json({ completion: '' });
     }
 
     const data = await response.json();
     
-    // Parse Grok chat completions response
+    // Parse OpenRouter chat completions response
     // Format: { choices: [{ message: { content: "..." } }] }
     let completion = '';
     
@@ -108,9 +102,8 @@ Rules:
       }
     }
 
-    console.log(`Grok ${isCorrection ? 'correction' : 'completion'} response:`, { 
+    console.log(`OpenRouter ${isCorrection ? 'correction' : 'completion'} response:`, {
       completionLength: completion.length,
-      completionPreview: completion.substring(0, 50),
     });
 
     return NextResponse.json({ 
@@ -129,4 +122,3 @@ Rules:
     return NextResponse.json({ completion: '' });
   }
 }
-

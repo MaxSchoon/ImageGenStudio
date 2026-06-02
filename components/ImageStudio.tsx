@@ -6,9 +6,9 @@ import LoadingOverlay from './LoadingOverlay';
 import ImagePreview from './ImagePreview';
 import MobileBottomSheet from './MobileBottomSheet';
 import Footer from './Footer';
-import { generateImage } from '@/lib/nanobanana';
+import { generateImage } from '@/lib/imageGeneration';
 import { buildCreatorPrompt, CreatorPreset } from '@/lib/creatorContent';
-import { Layout, Model, MODEL_CAPABILITIES } from '@/lib/modelConfig';
+import { DEFAULT_MODEL, Layout, Model, MODEL_CAPABILITIES, OPENROUTER_MODEL_BY_VALUE } from '@/lib/modelConfig';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
@@ -42,7 +42,7 @@ export default function ImageStudio() {
   const [prompt, setPrompt] = useState('');
   const [selectedLayout, setSelectedLayout] = useState<Layout>('square');
   const [selectedCreatorPreset, setSelectedCreatorPreset] = useState<CreatorPreset | null>(null);
-  const [selectedModel, setSelectedModel] = useState<Model>('google');
+  const [selectedModel, setSelectedModel] = useState<Model>(DEFAULT_MODEL);
   const [isLoading, setIsLoading] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -132,7 +132,7 @@ export default function ImageStudio() {
     if (!newCapabilities.supportsLayoutSelection) {
       setSelectedLayout('reference');
       if (!uploadedImage) {
-        setError('Qwen requires a reference image. Please upload an image.');
+        setError(`${OPENROUTER_MODEL_BY_VALUE[model].label} requires a reference image. Please upload an image.`);
       } else {
         setError(null);
       }

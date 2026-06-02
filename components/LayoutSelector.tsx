@@ -1,6 +1,6 @@
 'use client';
 
-import { Layout, Model, MODEL_CAPABILITIES, getLayoutsForModel, LayoutConfig } from '@/lib/modelConfig';
+import { DEFAULT_MODEL, Layout, Model, MODEL_CAPABILITIES, getLayoutsForModel, LayoutConfig } from '@/lib/modelConfig';
 
 interface LayoutSelectorProps {
   selectedLayout: Layout;
@@ -14,7 +14,7 @@ export default function LayoutSelector({
   selectedLayout,
   onSelect,
   hasReferenceImage = false,
-  selectedModel = 'google',
+  selectedModel = DEFAULT_MODEL,
   referenceDimensions
 }: LayoutSelectorProps) {
   const capabilities = MODEL_CAPABILITIES[selectedModel];

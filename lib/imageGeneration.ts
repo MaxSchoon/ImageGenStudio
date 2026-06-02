@@ -1,24 +1,28 @@
-import { Layout, Model } from './modelConfig';
+import { DEFAULT_MODEL, Layout, Model } from './modelConfig';
 
 type LayoutInput = Layout | { type: 'reference'; width: number; height: number };
 
-export async function generateImage(prompt: string, layout: LayoutInput, model: Model = 'google', imageData?: string): Promise<string> {
+export async function generateImage(
+  prompt: string,
+  layout: LayoutInput,
+  model: Model = DEFAULT_MODEL,
+  imageData?: string
+): Promise<string> {
   try {
-    const requestBody: any = {
+    const requestBody: Record<string, unknown> = {
       prompt,
       layout: typeof layout === 'object' ? layout.type : layout,
       model,
     };
-    
-    // Add reference dimensions if layout is reference
+
     if (typeof layout === 'object' && layout.type === 'reference') {
       requestBody.referenceDimensions = { width: layout.width, height: layout.height };
     }
-    
+
     if (imageData) {
       requestBody.imageData = imageData;
     }
-    
+
     const response = await fetch('/api/generate', {
       method: 'POST',
       headers: {
@@ -32,12 +36,11 @@ export async function generateImage(prompt: string, layout: LayoutInput, model: 
       try {
         const errorData = await response.json();
         errorMessage = errorData.error || errorMessage;
-      } catch (e) {
-        // If response is not JSON, try to get text
+      } catch {
         try {
           const text = await response.text();
           errorMessage = text || `HTTP ${response.status}: ${response.statusText}`;
-        } catch (e2) {
+        } catch {
           errorMessage = `HTTP ${response.status}: ${response.statusText}`;
         }
       }
@@ -45,46 +48,31 @@ export async function generateImage(prompt: string, layout: LayoutInput, model: 
     }
 
     const data = await response.json();
-    console.log('Client received API response:', {
-      hasImageUrl: !!data.imageUrl,
-      imageUrlLength: data.imageUrl?.length || 0,
-      imageUrlPreview: data.imageUrl?.substring(0, 50) || 'N/A',
-      responseKeys: Object.keys(data)
-    });
-    
     if (!data.imageUrl) {
-      console.error('API response missing imageUrl:', data);
-      // Check if there's a more specific error message
       if (data.error) {
         throw new Error(`Failed to generate image: ${data.error}`);
       }
-      throw new Error('No image data found in API response. Please check the API documentation at https://ai.google.dev/gemini-api/docs/image-generation');
+      throw new Error('No image data found in OpenRouter response.');
     }
 
-    console.log('Successfully returning imageUrl to component');
     return data.imageUrl;
   } catch (error) {
     console.error('Error generating image:', error);
-    
-    // Handle network errors
+
     if (error instanceof TypeError) {
       if (error.message.includes('fetch')) {
         throw new Error('Network error: Unable to connect to the server. Please check your internet connection and ensure the development server is running.');
       }
-      // Handle other TypeErrors
       throw new Error(`Network error: ${error.message}`);
     }
-    
-    // Handle fetch errors (when fetch throws)
+
     if (error instanceof Error) {
-      // If it's already a formatted error, rethrow it
       if (error.message.includes('HTTP') || error.message.includes('Failed to generate') || error.message.includes('Network error')) {
         throw error;
       }
-      // Otherwise, provide a more helpful message
       throw new Error(`Failed to generate image: ${error.message}`);
     }
-    
+
     throw error;
   }
 }

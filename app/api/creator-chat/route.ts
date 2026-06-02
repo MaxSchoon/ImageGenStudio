@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const model = process.env.OPENROUTER_CHAT_MODEL || 'openai/gpt-4.1-mini';
+    const model = process.env.OPENROUTER_CHAT_MODEL || 'openai/gpt-5.4-mini';
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
