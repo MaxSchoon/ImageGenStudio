@@ -8,9 +8,10 @@ interface ImagePreviewProps {
   imageUrl: string;
   layout: Layout;
   referenceDimensions?: { width: number; height: number } | null;
+  outputDimensions?: { width: number; height: number; label?: string } | null;
 }
 
-export default function ImagePreview({ imageUrl, layout, referenceDimensions }: ImagePreviewProps) {
+export default function ImagePreview({ imageUrl, layout, referenceDimensions, outputDimensions }: ImagePreviewProps) {
   const [imageError, setImageError] = useState(false);
 
   const { blobUrl, isBlob } = useMemo(() => {
@@ -45,6 +46,14 @@ export default function ImagePreview({ imageUrl, layout, referenceDimensions }: 
   }, [blobUrl, isBlob]);
 
   const getMaxDimensions = () => {
+    if (outputDimensions) {
+      const ratio = outputDimensions.width / outputDimensions.height;
+      if (ratio >= 3) return 'max-w-full max-h-[70vh]';
+      if (ratio > 1) return 'max-w-3xl max-h-[80vh]';
+      if (ratio < 0.8) return 'max-w-sm max-h-[80vh]';
+      return 'max-w-2xl max-h-[80vh]';
+    }
+
     switch (layout) {
       case 'landscape':
         return 'max-w-full max-h-[80vh] aspect-[16/9]';
@@ -68,7 +77,10 @@ export default function ImagePreview({ imageUrl, layout, referenceDimensions }: 
     const extension = imageUrl.includes('image/png') ? 'png' :
                      imageUrl.includes('image/jpeg') || imageUrl.includes('image/jpg') ? 'jpg' :
                      imageUrl.includes('image/webp') ? 'webp' : 'png';
-    return `generated-image.${extension}`;
+    const baseName = outputDimensions?.label
+      ? outputDimensions.label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+      : 'generated-image';
+    return `${baseName || 'generated-image'}.${extension}`;
   };
 
   const handleOpenInNewTab = () => {
@@ -85,6 +97,11 @@ export default function ImagePreview({ imageUrl, layout, referenceDimensions }: 
 
   return (
     <div className="relative group">
+      {outputDimensions && (
+        <div className="absolute left-1/2 top-3 z-10 -translate-x-1/2 rounded-full border border-studio-border bg-studio-surface/90 px-3 py-1 text-xs font-medium text-studio-text backdrop-blur-sm">
+          {outputDimensions.label ? `${outputDimensions.label} - ` : ''}{outputDimensions.width}x{outputDimensions.height}
+        </div>
+      )}
       <img
         src={imageUrl}
         alt="Generated image"

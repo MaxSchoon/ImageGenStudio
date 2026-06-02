@@ -222,14 +222,8 @@ async function generateWithGrok(prompt: string, layout: Layout, imageData?: stri
   if (data.data && Array.isArray(data.data) && data.data.length > 0) {
     const firstImage = data.data[0];
     
-    // Check for URL first (preferred format)
-    if (firstImage.url) {
-      imageUrl = firstImage.url;
-      console.log('Found image URL in data array');
-    }
-    // Check for base64 JSON (alternative format)
-    else if (firstImage.b64_json) {
-      // Convert base64 to data URI
+    // Prefer base64 when available so creator presets can be resized exactly.
+    if (firstImage.b64_json) {
       imageUrl = `data:image/jpeg;base64,${firstImage.b64_json}`;
       console.log('Found base64 image in data array');
     }
@@ -248,6 +242,10 @@ async function generateWithGrok(prompt: string, layout: Layout, imageData?: stri
         }
         console.log('Found data field in data array');
       }
+    }
+    else if (firstImage.url) {
+      imageUrl = firstImage.url;
+      console.log('Found image URL in data array');
     }
   }
   
@@ -575,4 +573,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
