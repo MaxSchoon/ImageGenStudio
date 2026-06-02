@@ -7,6 +7,7 @@ import ImagePreview from './ImagePreview';
 import MobileBottomSheet from './MobileBottomSheet';
 import Footer from './Footer';
 import { generateImage } from '@/lib/nanobanana';
+import { buildCreatorPrompt, CreatorPreset } from '@/lib/creatorContent';
 import { Layout, Model, MODEL_CAPABILITIES } from '@/lib/modelConfig';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -40,6 +41,7 @@ function compressImage(dataUrl: string, maxDim: number, quality: number): Promis
 export default function ImageStudio() {
   const [prompt, setPrompt] = useState('');
   const [selectedLayout, setSelectedLayout] = useState<Layout>('square');
+  const [selectedCreatorPreset, setSelectedCreatorPreset] = useState<CreatorPreset | null>(null);
   const [selectedModel, setSelectedModel] = useState<Model>('google');
   const [isLoading, setIsLoading] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
@@ -150,6 +152,19 @@ export default function ImageStudio() {
       return;
     }
     setSelectedLayout(layout);
+    setSelectedCreatorPreset(null);
+  };
+
+  const handleCreatorPresetSelect = (preset: CreatorPreset | null) => {
+    setSelectedCreatorPreset(preset);
+    if (preset) {
+      setSelectedLayout(preset.generationLayout);
+      if (preset.workflow === 'enhance' && !uploadedImage) {
+        setError('Upload an image first to use enhancement mode.');
+      } else {
+        setError(null);
+      }
+    }
   };
 
   const handleEnhancePrompt = async () => {
@@ -180,18 +195,47 @@ export default function ImageStudio() {
       return;
     }
 
+    if (selectedCreatorPreset?.workflow === 'enhance' && !uploadedImage) {
+      setError('Upload an image first to use enhancement mode.');
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
     setGeneratedImage(null);
 
     try {
       const imageDataToSend = uploadedImage || undefined;
-      const layoutToUse = selectedLayout === 'reference' && referenceImageDimensions
+      const promptToSend = buildCreatorPrompt(prompt, selectedCreatorPreset);
+      const generationLayout = selectedCreatorPreset?.generationLayout || selectedLayout;
+      const layoutToUse = generationLayout === 'reference' && referenceImageDimensions
         ? { type: 'reference' as const, width: referenceImageDimensions.width, height: referenceImageDimensions.height }
-        : selectedLayout;
+        : generationLayout;
 
-      const imageUrl = await generateImage(prompt, layoutToUse, selectedModel, imageDataToSend);
-      setGeneratedImage(imageUrl);
+      const imageUrl = await generateImage(promptToSend, layoutToUse, selectedModel, imageDataToSend);
+      let finalImageUrl = imageUrl;
+
+      if (selectedCreatorPreset && imageUrl.startsWith('data:image')) {
+        const response = await fetch('/api/format', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            image: imageUrl,
+            width: selectedCreatorPreset.width,
+            height: selectedCreatorPreset.height,
+            format: 'png',
+          }),
+        });
+        if (response.ok) {
+          const data = await response.json();
+          if (data.image) finalImageUrl = data.image;
+        } else {
+          const data = await response.json().catch(() => null);
+          throw new Error(data?.error || `Failed to export ${selectedCreatorPreset.dimensions} image.`);
+        }
+      }
+
+      setGeneratedImage(finalImageUrl);
       // Auto-collapse bottom sheet on mobile after successful generation
       setBottomSheetOpen(false);
     } catch (err) {
@@ -210,6 +254,8 @@ export default function ImageStudio() {
     onModelSelect: handleModelSelect,
     selectedLayout,
     onLayoutSelect: handleLayoutSelect,
+    selectedCreatorPresetId: selectedCreatorPreset?.id || null,
+    onCreatorPresetSelect: handleCreatorPresetSelect,
     uploadedImage,
     onFileSelect: handleFileSelect,
     onClearImage: handleClearImage,
@@ -247,8 +293,13 @@ export default function ImageStudio() {
         {generatedImage && !isLoading && (
           <ImagePreview
             imageUrl={generatedImage}
-            layout={selectedLayout}
-            referenceDimensions={selectedLayout === 'reference' ? referenceImageDimensions : null}
+            layout={selectedCreatorPreset?.generationLayout || selectedLayout}
+            referenceDimensions={(selectedCreatorPreset?.generationLayout || selectedLayout) === 'reference' ? referenceImageDimensions : null}
+            outputDimensions={selectedCreatorPreset ? {
+              width: selectedCreatorPreset.width,
+              height: selectedCreatorPreset.height,
+              label: selectedCreatorPreset.shortLabel,
+            } : null}
           />
         )}
         {!generatedImage && !isLoading && (

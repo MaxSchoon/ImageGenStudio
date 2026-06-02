@@ -4,6 +4,8 @@ import PromptInput from './PromptInput';
 import ModelSelector from './ModelSelector';
 import LayoutSelector from './LayoutSelector';
 import ReferenceUpload from './ReferenceUpload';
+import CreatorWorkflowPanel from './CreatorWorkflowPanel';
+import { CreatorPreset } from '@/lib/creatorContent';
 import { Layout, Model } from '@/lib/modelConfig';
 
 interface StudioControlsProps {
@@ -15,6 +17,8 @@ interface StudioControlsProps {
   onModelSelect: (model: Model) => void;
   selectedLayout: Layout;
   onLayoutSelect: (layout: Layout) => void;
+  selectedCreatorPresetId: string | null;
+  onCreatorPresetSelect: (preset: CreatorPreset | null) => void;
   uploadedImage: string | null;
   onFileSelect: (file: File) => void;
   onClearImage: () => void;
@@ -37,6 +41,8 @@ export default function StudioControls({
   onModelSelect,
   selectedLayout,
   onLayoutSelect,
+  selectedCreatorPresetId,
+  onCreatorPresetSelect,
   uploadedImage,
   onFileSelect,
   onClearImage,
@@ -56,6 +62,13 @@ export default function StudioControls({
         onChange={onPromptChange}
         onEnhance={onEnhancePrompt}
         isEnhancing={isEnhancing}
+      />
+
+      <CreatorWorkflowPanel
+        selectedPresetId={selectedCreatorPresetId}
+        onPresetSelect={onCreatorPresetSelect}
+        onApplyPrompt={onPromptChange}
+        hasUploadedImage={!!uploadedImage}
       />
 
       <ModelSelector
