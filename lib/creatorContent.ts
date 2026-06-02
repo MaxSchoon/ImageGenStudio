@@ -19,6 +19,7 @@ export interface CreatorPreset {
     label: string;
     description: string;
   };
+  negativePromptRules?: string[];
 }
 
 export const CREATOR_PRESETS: CreatorPreset[] = [
@@ -32,12 +33,17 @@ export const CREATOR_PRESETS: CreatorPreset[] = [
     width: 1584,
     height: 396,
     generationLayout: 'landscape',
-    guidance: '4:1 cover image. Keep headline, logo, face, and CTA away from the lower-left and center-left profile-photo overlap. Use the top-right and right-center as the safest message zone.',
+    guidance: '4:1 cover image. Keep headline, logo, face, and CTA away from the lower-left and center-left reserved overlay zone. Use the top-right and right-center as the safest message zone.',
     safeArea: {
-      label: 'Mobile-safe banner',
-      description: 'Reserve left/center-left space for LinkedIn profile-photo overlap and responsive crop. Put critical copy in the right half.',
+      label: 'Empty overlay zone',
+      description: 'Leave the left/center-left reserved area quiet and empty. LinkedIn will place the real profile photo there after upload, so do not generate a stand-in.',
     },
-    promptPrefix: 'Create a LinkedIn personal profile cover image at 1584x396. Design for a 4:1 crop. Leave generous negative space in the lower-left and center-left for profile photo overlap on desktop and mobile. Put essential text, logo, and call-to-action in the right half, especially the top-right and right-center. Use premium B2B creator branding, crisp typography, and clean visual hierarchy.',
+    promptPrefix: 'Create a LinkedIn personal profile cover image at 1584x396. Design for a 4:1 crop. Reserve the lower-left and center-left as a quiet empty overlay zone for LinkedIn UI on desktop and mobile. Keep that reserved zone as background, texture, color field, or whitespace only. Put essential text, logo, and call-to-action in the right half, especially the top-right and right-center. Use premium B2B creator branding, crisp typography, and clean visual hierarchy.',
+    negativePromptRules: [
+      'Do not generate a profile photo, avatar, headshot, portrait, face, silhouette, circular photo frame, placeholder badge, or person-shaped graphic in the reserved overlay zone.',
+      'Do not fill the reserved overlay zone with a decorative object that reads as a substitute profile picture.',
+      'If the brief asks for a person or face, place it outside the reserved overlay zone and keep the zone visually calm.',
+    ],
   },
   {
     id: 'linkedin-feed-landscape',
@@ -116,6 +122,7 @@ export function buildCreatorPrompt(userPrompt: string, preset?: CreatorPreset | 
 
   return [
     preset.promptPrefix,
+    ...(preset.negativePromptRules || []),
     trimmedPrompt ? `User brief: ${trimmedPrompt}` : '',
     'Output must be polished enough for a creator studio managing executive, founder, or expert accounts.',
   ].filter(Boolean).join('\n\n');

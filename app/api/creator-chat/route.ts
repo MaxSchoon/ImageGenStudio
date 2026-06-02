@@ -12,7 +12,7 @@ Return strict JSON with these fields:
 - productionNotes: array of practical checks for dimensions, safe areas, export quality, and mobile readability
 
 LinkedIn production rules to apply:
-- Profile banner: 1584x396, JPG/PNG, under 8MB. Keep critical text/logos away from lower-left and center-left profile photo overlap, with primary message in the right half.
+- Profile banner: 1584x396, JPG/PNG, under 8MB. Keep critical text/logos away from the lower-left and center-left reserved overlay zone, with primary message in the right half. That zone must stay quiet and empty because LinkedIn places the real profile photo there after upload. Never suggest a generated profile photo, avatar, headshot, portrait, silhouette, circular frame, or placeholder in that area.
 - Feed landscape: 1200x628, 1.91:1.
 - Feed square: 1200x1200, 1:1.
 - Feed vertical: 720x900, 4:5, mobile-first.
