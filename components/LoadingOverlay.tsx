@@ -12,60 +12,24 @@ interface LoadingOverlayProps {
 }
 
 const IMAGE_STAGES = [
-  {
-    title: 'Reading the brief',
-    detail: 'Scoring prompt signals, layout, model fit, and reference context.',
-  },
-  {
-    title: 'Composing the frame',
-    detail: 'Blocking the subject, whitespace, text zones, and visual hierarchy.',
-  },
-  {
-    title: 'Rendering candidates',
-    detail: 'Letting the model explore texture, lighting, color, and edge detail.',
-  },
-  {
-    title: 'Checking export fit',
-    detail: 'Holding the result until the preview is ready to inspect.',
-  },
+  'Reading the brief',
+  'Composing the frame',
+  'Rendering candidates',
+  'Checking export fit',
 ];
 
 const STORYBOOK_STAGES = [
-  {
-    title: 'Mapping the story arc',
-    detail: 'Balancing hook, problem, insight, proof, and CTA for the carousel.',
-  },
-  {
-    title: 'Laying out the pages',
-    detail: 'Keeping typography large, mobile-readable, and PDF-safe on every page.',
-  },
-  {
-    title: 'Rendering the pages',
-    detail: 'Building each page as a polished flattened storybook visual.',
-  },
-  {
-    title: 'Checking PDF consistency',
-    detail: 'Preparing the pages for a consistent document carousel sequence.',
-  },
+  'Mapping the story arc',
+  'Laying out the pages',
+  'Rendering the pages',
+  'Checking PDF consistency',
 ];
 
 const ENHANCE_STAGES = [
-  {
-    title: 'Inspecting the source',
-    detail: 'Finding subject edges, crop intent, color balance, and detail limits.',
-  },
-  {
-    title: 'Planning the retouch',
-    detail: 'Preserving identity while improving contrast, clarity, and finish.',
-  },
-  {
-    title: 'Applying polish',
-    detail: 'Refining exposure, background cleanup, texture, and sharpness.',
-  },
-  {
-    title: 'Checking fidelity',
-    detail: 'Making sure the enhancement still feels like the uploaded image.',
-  },
+  'Inspecting the source',
+  'Planning the retouch',
+  'Applying polish',
+  'Checking fidelity',
 ];
 
 function getLoadingStages(mode: LoadingMode) {
@@ -76,7 +40,7 @@ function getLoadingStages(mode: LoadingMode) {
 
 function getProgress(elapsedMs: number) {
   const eased = 1 - Math.exp(-elapsedMs / 18000);
-  return Math.min(92, Math.max(12, Math.round(eased * 100)));
+  return Math.min(92, Math.max(8, Math.round(eased * 100)));
 }
 
 export default function LoadingOverlay({
@@ -90,7 +54,6 @@ export default function LoadingOverlay({
   const stageIndex = Math.min(stages.length - 1, Math.floor(elapsedMs / 5200));
   const stage = stages[stageIndex];
   const progress = getProgress(elapsedMs);
-  const score = Math.min(980, 120 + stageIndex * 180 + Math.floor(elapsedMs / 900) * 12);
 
   useEffect(() => {
     setElapsedMs(0);
@@ -103,7 +66,7 @@ export default function LoadingOverlay({
   }, [mode, label, dimensions]);
 
   const heading = mode === 'storybook'
-    ? 'Building PDF Pages'
+    ? 'Building PDF pages'
     : mode === 'enhance'
       ? 'Enhancing image'
       : 'Generating image';
@@ -111,51 +74,27 @@ export default function LoadingOverlay({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-studio-bg/90 px-4 backdrop-blur-sm">
       <div
-        className="w-full max-w-[620px] rounded-xl border border-studio-border bg-studio-surface/95 p-4 shadow-[0_14px_36px_rgba(0,0,0,0.28)] sm:p-5"
+        className="w-full max-w-[380px] rounded-xl border border-studio-border bg-studio-surface/95 p-6 shadow-[0_14px_36px_rgba(0,0,0,0.28)]"
         role="status"
         aria-live="polite"
         aria-label={`${heading} in progress`}
       >
-        <div className="mb-4 flex items-start justify-between gap-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-studio-text/60">
-              {label || 'Studio run'}{dimensions ? ` - ${dimensions}` : ''}
-            </p>
-            <h2 className="mt-1 text-lg font-semibold text-studio-text">{heading}</h2>
-            {progressLabel && (
-              <p className="mt-1 text-xs font-medium text-studio-accent">{progressLabel}</p>
-            )}
-          </div>
-          <div className="min-w-20 rounded-lg border border-studio-border bg-studio-bg px-3 py-2 text-right">
-            <div className="text-[10px] uppercase tracking-wider text-studio-text/60">Focus</div>
-            <div className="text-sm font-semibold text-studio-accent">{score} pts</div>
-          </div>
+        <div className="flex items-center gap-2">
+          <span className="loading-pulse h-2 w-2 rounded-full bg-studio-accent" aria-hidden="true" />
+          <p className="text-xs font-semibold uppercase tracking-wider text-studio-text/55">
+            {label || 'Studio run'}{dimensions ? ` · ${dimensions}` : ''}
+          </p>
         </div>
 
-        <div className="mb-5 grid grid-cols-5 gap-2" aria-hidden="true">
-          {[0, 1, 2, 3, 4].map((tile) => (
-            <div
-              key={tile}
-              className="loading-tile relative aspect-[4/5] overflow-hidden rounded-lg border border-studio-border bg-studio-elevated"
-              style={{ animationDelay: `${tile * 180}ms` }}
-            >
-              <div className="absolute inset-x-2 top-3 h-2 rounded-full bg-studio-border" />
-              <div className="absolute inset-x-2 top-7 h-1 rounded-full bg-studio-border/70" />
-              <div className="absolute inset-x-2 bottom-3 h-8 rounded-md bg-studio-bg/80" />
-            </div>
-          ))}
-        </div>
+        <h2 className="mt-2 text-lg font-semibold text-studio-text">{heading}</h2>
 
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <div>
-            <div className="text-sm font-semibold text-studio-text">{stage.title}</div>
-            <div className="mt-1 max-w-[52ch] text-xs leading-relaxed text-studio-text/70">{stage.detail}</div>
-          </div>
-          <div className="text-sm font-semibold tabular-nums text-studio-text">{progress}%</div>
+        <div className="mt-6 flex items-baseline justify-between gap-3">
+          <span className="text-sm font-medium text-studio-text/80">{stage}</span>
+          <span className="text-sm font-semibold tabular-nums text-studio-text/55">{progress}%</span>
         </div>
 
         <div
-          className="h-2 overflow-hidden rounded-full bg-studio-bg"
+          className="mt-2 h-1.5 overflow-hidden rounded-full bg-studio-bg"
           role="progressbar"
           aria-valuemin={0}
           aria-valuemax={100}
@@ -167,32 +106,20 @@ export default function LoadingOverlay({
           />
         </div>
 
-        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {stages.map((item, index) => {
-            const isCurrent = index === stageIndex;
-            const isDone = index < stageIndex;
-
-            return (
-              <div
-                key={item.title}
-                className={`rounded-lg border px-3 py-2 text-xs ${
-                  isCurrent
-                    ? 'border-studio-accent bg-studio-accent/10 text-studio-text'
-                    : isDone
-                      ? 'border-studio-border bg-studio-elevated text-studio-text'
-                      : 'border-studio-border bg-studio-bg text-studio-text/60'
-                }`}
-              >
-                <div className="mb-1 font-semibold">{isDone ? 'Done' : `Step ${index + 1}`}</div>
-                <div className="leading-snug">{item.title}</div>
-              </div>
-            );
-          })}
+        <div className="mt-3 flex gap-1.5" aria-hidden="true">
+          {stages.map((title, index) => (
+            <span
+              key={title}
+              className={`h-1 flex-1 rounded-full transition-colors duration-500 ${
+                index <= stageIndex ? 'bg-studio-accent' : 'bg-studio-border'
+              }`}
+            />
+          ))}
         </div>
 
-        <div className="mt-4 rounded-lg border border-studio-border bg-studio-bg px-3 py-2 text-xs leading-relaxed text-studio-text/70">
-          Good generations often take a moment. The run keeps checking in while the model finishes.
-        </div>
+        {progressLabel && (
+          <p className="mt-4 text-xs text-studio-text/50">{progressLabel}</p>
+        )}
       </div>
     </div>
   );
