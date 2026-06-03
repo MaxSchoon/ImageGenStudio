@@ -1,10 +1,9 @@
 'use client';
 
-import ImageStudio from '@/components/ImageStudio';
+import AppShell from '@/components/AppShell';
 
 export default function Home() {
   return (
-    <ImageStudio />
+    <AppShell />
   );
 }
-
