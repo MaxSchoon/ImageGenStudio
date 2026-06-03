@@ -6,7 +6,6 @@ import LoadingOverlay from './LoadingOverlay';
 import ImagePreview from './ImagePreview';
 import StorybookPreview, { StorybookPage } from './StorybookPreview';
 import MobileBottomSheet from './MobileBottomSheet';
-import Footer from './Footer';
 import { generateImage } from '@/lib/imageGeneration';
 import { buildCreatorPrompt, buildStorybookPagePrompts, CreatorPreset } from '@/lib/creatorContent';
 import { DEFAULT_MODEL, Layout, Model, MODEL_CAPABILITIES, OPENROUTER_MODEL_BY_VALUE, getLayoutConfig } from '@/lib/modelConfig';
@@ -342,9 +341,6 @@ export default function ImageStudio() {
         </div>
         <div className="flex-1 overflow-y-auto studio-scrollbar px-4 py-4">
           <StudioControls {...controlsProps} />
-        </div>
-        <div className="p-4 border-t border-studio-border">
-          <Footer />
         </div>
       </aside>
 

@@ -67,12 +67,52 @@ function SpinnerIcon() {
   );
 }
 
+const ROBOT_FRAMES = [
+  '/robot/frame-1.png',
+  '/robot/frame-2.png',
+  '/robot/frame-3.png',
+  '/robot/frame-4.png',
+];
+
+// Static droid mascot — no background box.
 function AssistantMark() {
   return (
-    <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-studio-accent/15 text-studio-accent ring-1 ring-inset ring-studio-accent/25">
-      <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="currentColor" aria-hidden="true">
-        <path d="M12 1.6c.46 5.2 2.9 7.64 8.4 8.4-5.5.76-7.94 3.2-8.4 8.4-.46-5.2-2.9-7.64-8.4-8.4 5.5-.76 7.94-3.2 8.4-8.4Z" />
-      </svg>
+    <img
+      src={ROBOT_FRAMES[0]}
+      alt=""
+      aria-hidden="true"
+      className="mt-0.5 h-8 w-8 shrink-0 object-contain"
+    />
+  );
+}
+
+// While the agent is working, cycle the frames so the droid plays as a little
+// idle animation. All frames are stacked and toggled by opacity so they are
+// preloaded and never flash. Falls back to a static frame under reduced motion.
+function AssistantLoader() {
+  const [frame, setFrame] = useState(0);
+
+  useEffect(() => {
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    const timer = window.setInterval(() => {
+      setFrame((current) => (current + 1) % ROBOT_FRAMES.length);
+    }, 260);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  return (
+    <span className="relative mt-0.5 block h-8 w-8 shrink-0">
+      {ROBOT_FRAMES.map((src, index) => (
+        <img
+          key={src}
+          src={src}
+          alt=""
+          aria-hidden="true"
+          className={`absolute inset-0 h-8 w-8 object-contain transition-opacity duration-100 ${
+            index === frame ? 'opacity-100' : 'opacity-0'
+          }`}
+        />
+      ))}
     </span>
   );
 }
@@ -416,14 +456,10 @@ export default function ChatPanel() {
             <MessageRow key={message.id} message={message} />
           ))}
           {isSending && (
-            <div className="flex gap-3" aria-live="polite">
-              <AssistantMark />
-              <div className="flex items-center gap-1 pt-2.5">
-                <span className="chat-typing-dot h-1.5 w-1.5 rounded-full bg-studio-muted" />
-                <span className="chat-typing-dot h-1.5 w-1.5 rounded-full bg-studio-muted" />
-                <span className="chat-typing-dot h-1.5 w-1.5 rounded-full bg-studio-muted" />
-                <span className="sr-only">Generating a response</span>
-              </div>
+            <div className="flex items-center gap-3" aria-live="polite">
+              <AssistantLoader />
+              <span className="text-sm text-studio-muted">Thinking…</span>
+              <span className="sr-only">Generating a response</span>
             </div>
           )}
         </div>
