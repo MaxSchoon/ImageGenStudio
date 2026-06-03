@@ -42,13 +42,17 @@ function SectionHeader({ title, description }: { title: string; description?: st
 }
 
 function LockedOutput({ preset }: { preset: CreatorPreset }) {
+  const outputCopy = preset.workflow === 'storybook'
+    ? `This workflow generates 5 pages at ${preset.dimensions} and exports them as one PDF.`
+    : `Manual layout is hidden because this preset exports to ${preset.dimensions}.`;
+
   return (
     <div className="rounded-lg border border-studio-border bg-studio-elevated p-3">
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="text-sm font-semibold text-studio-text">Output locked by workflow</div>
           <p className="mt-1 text-xs leading-relaxed text-studio-muted">
-            Manual layout is hidden because this preset exports to {preset.dimensions}.
+            {outputCopy}
           </p>
         </div>
         <div className="shrink-0 rounded-md bg-studio-bg px-2 py-1 text-xs font-medium text-studio-text">
@@ -88,6 +92,11 @@ export default function StudioControls({
   const referenceDescription = imageRequired
     ? 'Required for this workflow before generation.'
     : 'Optional. Use a reference when you want the model to preserve composition or subject details.';
+  const generateLabel = selectedCreatorPreset?.workflow === 'storybook'
+    ? 'Generate PDF Pages'
+    : selectedCreatorPreset
+      ? `Generate ${selectedCreatorPreset.shortLabel}`
+      : 'Generate image';
 
   return (
     <div className="space-y-5">
@@ -198,7 +207,7 @@ export default function StudioControls({
         disabled={isLoading}
         className="w-full rounded-lg bg-studio-accent py-3 font-semibold text-white transition-colors hover:bg-studio-accent-hover active:brightness-90 disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {isLoading ? 'Generating...' : selectedCreatorPreset ? `Generate ${selectedCreatorPreset.shortLabel}` : 'Generate image'}
+        {isLoading ? 'Generating...' : generateLabel}
       </button>
     </div>
   );

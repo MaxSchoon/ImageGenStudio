@@ -194,9 +194,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Prompt is required' }, { status: 400 });
     }
 
-    if (!layout || !['landscape', 'mobile', 'square', 'reference'].includes(layout)) {
+    if (!layout || !['landscape', 'mobile', 'portrait', 'square', 'reference'].includes(layout)) {
       return NextResponse.json(
-        { error: 'Valid layout is required (landscape, mobile, square, or reference)' },
+        { error: 'Valid layout is required (landscape, mobile, portrait, square, or reference)' },
         { status: 400 }
       );
     }

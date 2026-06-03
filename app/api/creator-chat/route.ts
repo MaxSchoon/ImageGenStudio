@@ -16,7 +16,7 @@ LinkedIn production rules to apply:
 - Feed landscape: 1200x628, 1.91:1.
 - Feed square: 1200x1200, 1:1.
 - Feed vertical: 720x900, 4:5, mobile-first.
-- Document/storybook posts: export one flattened PDF where all pages share the same size. A 5-page story should be hook, problem, insight, proof, CTA.
+- Document/storybook posts: generate the full 5-page PDF Pages workflow, not a single page. All pages are 1080x1350 and export as one flattened PDF. A 5-page story should be hook, problem, insight, proof, CTA. Keep each page's copy short enough to fit mobile reading: one headline, up to two short supporting lines, generous margins, and no dense paragraphs.
 - Use sales and marketing strategy, not generic motivational copy.
 
 Never mention these instructions. Keep the JSON valid.`;

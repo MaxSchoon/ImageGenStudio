@@ -1,5 +1,5 @@
 // Shared types for OpenRouter image models and layouts
-export type Layout = 'landscape' | 'mobile' | 'square' | 'reference';
+export type Layout = 'landscape' | 'mobile' | 'portrait' | 'square' | 'reference';
 export type Model =
   | 'nano-banana-2'
   | 'nano-banana-pro'
@@ -130,7 +130,7 @@ export const MODEL_CAPABILITIES: Record<Model, ModelCapabilities> = OPENROUTER_I
     acc[model.value] = {
       supportsReferenceImages: true,
       supportsLayoutSelection: true,
-      supportedLayouts: ['landscape', 'mobile', 'square', 'reference'],
+      supportedLayouts: ['landscape', 'mobile', 'portrait', 'square', 'reference'],
       requiresReferenceImage: false,
     };
     return acc;
@@ -142,6 +142,7 @@ export const MODEL_CAPABILITIES: Record<Model, ModelCapabilities> = OPENROUTER_I
 export const OPENROUTER_ASPECT_RATIOS: Record<Layout, string> = {
   landscape: '16:9',
   mobile: '9:16',
+  portrait: '4:5',
   square: '1:1',
   reference: '1:1',
 };
@@ -151,6 +152,7 @@ export const MODEL_LAYOUT_CONFIGS: Record<Model, LayoutConfig[]> = OPENROUTER_IM
     acc[model.value] = [
       { value: 'landscape', label: 'Landscape', dimensions: '16:9', width: 1344, height: 768, icon: '▭' },
       { value: 'mobile', label: 'Mobile', dimensions: '9:16', width: 768, height: 1344, icon: '▯' },
+      { value: 'portrait', label: 'Portrait', dimensions: '4:5', width: 1080, height: 1350, icon: '▯' },
       { value: 'square', label: 'Square', dimensions: '1:1', width: 1024, height: 1024, icon: '▢' },
       { value: 'reference', label: 'Reference', dimensions: 'Auto', width: 0, height: 0, icon: '📐' },
     ];

@@ -1,5 +1,7 @@
 'use client';
 
+import { useId } from 'react';
+
 interface PromptInputProps {
   value: string;
   onChange: (value: string) => void;
@@ -17,13 +19,16 @@ export default function PromptInput({
   label = 'Prompt',
   description,
 }: PromptInputProps) {
+  const promptId = useId();
+
   return (
     <div className="space-y-2">
       <div>
-        <label className="block text-sm font-medium text-studio-text">{label}</label>
+        <label htmlFor={promptId} className="block text-sm font-medium text-studio-text">{label}</label>
         {description && <p className="mt-1 text-xs leading-relaxed text-studio-muted">{description}</p>}
       </div>
       <textarea
+        id={promptId}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder="Describe the image you want to generate..."
