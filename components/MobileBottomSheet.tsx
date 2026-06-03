@@ -36,9 +36,9 @@ export default function MobileBottomSheet({ children, isExpanded, onToggle, summ
 
   return (
     <div
-      className="fixed inset-x-0 bottom-16 lg:hidden z-40 transition-transform duration-300 ease-out"
+      className="fixed inset-x-0 bottom-status-bar lg:hidden z-40 transition-transform duration-300 ease-out"
       style={{
-        height: 'calc(85dvh - 4rem)',
+        height: 'calc(85dvh - var(--status-bar-height))',
         transform: isExpanded ? 'translateY(0)' : `translateY(calc(100% - ${COLLAPSED_HEIGHT}px))`,
       }}
     >
