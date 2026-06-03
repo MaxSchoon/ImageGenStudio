@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "test:banner-contract": "node scripts/check-linkedin-banner-contract.mjs",
+    "test:storybook-contract": "node scripts/check-storybook-contract.mjs",
     "generate-icons": "node scripts/generate-icons.js"
   },
   "dependencies": {
@@ -16,6 +17,7 @@
     "@types/react-dom": "^19.2.2",
     "autoprefixer": "^10.4.21",
     "next": "^16.1.6",
+    "pdf-lib": "^1.17.1",
     "postcss": "^8.5.6",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",

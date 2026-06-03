@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 
-type Layout = 'landscape' | 'mobile' | 'square' | 'reference';
+type Layout = 'landscape' | 'mobile' | 'portrait' | 'square' | 'reference';
 
 interface ImagePreviewProps {
   imageUrl: string;
@@ -59,6 +59,8 @@ export default function ImagePreview({ imageUrl, layout, referenceDimensions, ou
         return 'max-w-full max-h-[80vh] aspect-[16/9]';
       case 'mobile':
         return 'max-w-sm max-h-[80vh] aspect-[9/16]';
+      case 'portrait':
+        return 'max-w-md max-h-[80vh] aspect-[4/5]';
       case 'square':
         return 'max-w-2xl max-h-[80vh] aspect-square';
       case 'reference':

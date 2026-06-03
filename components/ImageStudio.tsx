@@ -4,16 +4,46 @@ import { useState, useRef } from 'react';
 import StudioControls from './StudioControls';
 import LoadingOverlay from './LoadingOverlay';
 import ImagePreview from './ImagePreview';
+import StorybookPreview, { StorybookPage } from './StorybookPreview';
 import MobileBottomSheet from './MobileBottomSheet';
 import Footer from './Footer';
 import { generateImage } from '@/lib/imageGeneration';
-import { buildCreatorPrompt, CreatorPreset } from '@/lib/creatorContent';
+import { buildCreatorPrompt, buildStorybookPagePrompts, CreatorPreset } from '@/lib/creatorContent';
 import { DEFAULT_MODEL, Layout, Model, MODEL_CAPABILITIES, OPENROUTER_MODEL_BY_VALUE, getLayoutConfig } from '@/lib/modelConfig';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 const MAX_IMAGE_DIMENSION = 1024;
 const COMPRESSION_QUALITY = 0.8;
+
+async function formatPresetImage(image: string, preset: CreatorPreset): Promise<string> {
+  if (!image.startsWith('data:image')) {
+    throw new Error(`Generated ${preset.shortLabel} output must be image data before exact export formatting.`);
+  }
+
+  const response = await fetch('/api/format', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      image,
+      width: preset.width,
+      height: preset.height,
+      format: 'png',
+    }),
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    throw new Error(data?.error || `Failed to export ${preset.dimensions} image.`);
+  }
+
+  const data = await response.json();
+  if (!data.image) {
+    throw new Error(`Failed to export ${preset.dimensions} image.`);
+  }
+
+  return data.image;
+}
 
 function compressImage(dataUrl: string, maxDim: number, quality: number): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -45,6 +75,8 @@ export default function ImageStudio() {
   const [selectedModel, setSelectedModel] = useState<Model>(DEFAULT_MODEL);
   const [isLoading, setIsLoading] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  const [storybookPages, setStorybookPages] = useState<StorybookPage[]>([]);
+  const [storybookProgress, setStorybookProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [referenceImageDimensions, setReferenceImageDimensions] = useState<{ width: number; height: number } | null>(null);
@@ -158,10 +190,14 @@ export default function ImageStudio() {
     }
     setSelectedLayout(layout);
     setSelectedCreatorPreset(null);
+    setGeneratedImage(null);
+    setStorybookPages([]);
   };
 
   const handleCreatorPresetSelect = (preset: CreatorPreset | null) => {
     setSelectedCreatorPreset(preset);
+    setGeneratedImage(null);
+    setStorybookPages([]);
     if (preset) {
       setSelectedLayout(preset.generationLayout);
       if (preset.workflow === 'enhance' && !uploadedImage) {
@@ -208,36 +244,44 @@ export default function ImageStudio() {
     setIsLoading(true);
     setError(null);
     setGeneratedImage(null);
+    setStorybookPages([]);
+    setStorybookProgress(null);
 
     try {
       const imageDataToSend = uploadedImage || undefined;
-      const promptToSend = buildCreatorPrompt(prompt, selectedCreatorPreset);
       const generationLayout = selectedCreatorPreset?.generationLayout || selectedLayout;
       const layoutToUse = generationLayout === 'reference' && referenceImageDimensions
         ? { type: 'reference' as const, width: referenceImageDimensions.width, height: referenceImageDimensions.height }
         : generationLayout;
 
+      if (selectedCreatorPreset?.workflow === 'storybook') {
+        const pagePrompts = buildStorybookPagePrompts(prompt, selectedCreatorPreset);
+        const generatedPages: StorybookPage[] = [];
+
+        for (const pagePrompt of pagePrompts) {
+          setStorybookProgress(`Page ${pagePrompt.pageNumber} of ${pagePrompts.length}: ${pagePrompt.title}`);
+          const imageUrl = await generateImage(pagePrompt.prompt, layoutToUse, selectedModel, imageDataToSend);
+          const formattedImage = await formatPresetImage(imageUrl, selectedCreatorPreset);
+          generatedPages.push({
+            pageNumber: pagePrompt.pageNumber,
+            title: pagePrompt.title,
+            role: pagePrompt.role,
+            imageUrl: formattedImage,
+          });
+        }
+
+        setStorybookPages(generatedPages);
+        setGeneratedImage(null);
+        setBottomSheetOpen(false);
+        return;
+      }
+
+      const promptToSend = buildCreatorPrompt(prompt, selectedCreatorPreset);
       const imageUrl = await generateImage(promptToSend, layoutToUse, selectedModel, imageDataToSend);
       let finalImageUrl = imageUrl;
 
       if (selectedCreatorPreset && imageUrl.startsWith('data:image')) {
-        const response = await fetch('/api/format', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            image: imageUrl,
-            width: selectedCreatorPreset.width,
-            height: selectedCreatorPreset.height,
-            format: 'png',
-          }),
-        });
-        if (response.ok) {
-          const data = await response.json();
-          if (data.image) finalImageUrl = data.image;
-        } else {
-          const data = await response.json().catch(() => null);
-          throw new Error(data?.error || `Failed to export ${selectedCreatorPreset.dimensions} image.`);
-        }
+        finalImageUrl = await formatPresetImage(imageUrl, selectedCreatorPreset);
       }
 
       setGeneratedImage(finalImageUrl);
@@ -247,6 +291,7 @@ export default function ImageStudio() {
       setError(err instanceof Error ? err.message : 'Failed to generate image');
     } finally {
       setIsLoading(false);
+      setStorybookProgress(null);
     }
   };
 
@@ -278,7 +323,9 @@ export default function ImageStudio() {
   const activeSummary = selectedCreatorPreset
     ? {
         title: selectedCreatorPreset.shortLabel,
-        detail: `${selectedCreatorPreset.dimensions} export via ${OPENROUTER_MODEL_BY_VALUE[selectedModel].shortLabel}`,
+        detail: selectedCreatorPreset.workflow === 'storybook'
+          ? `5 pages · ${selectedCreatorPreset.dimensions} PDF via ${OPENROUTER_MODEL_BY_VALUE[selectedModel].shortLabel}`
+          : `${selectedCreatorPreset.dimensions} export via ${OPENROUTER_MODEL_BY_VALUE[selectedModel].shortLabel}`,
       }
     : {
         title: 'Freeform image',
@@ -308,6 +355,18 @@ export default function ImageStudio() {
             mode={loadingMode}
             label={selectedCreatorPreset?.shortLabel}
             dimensions={selectedCreatorPreset?.dimensions}
+            progressLabel={storybookProgress}
+          />
+        )}
+        {storybookPages.length > 0 && !isLoading && selectedCreatorPreset?.workflow === 'storybook' && (
+          <StorybookPreview
+            pages={storybookPages}
+            dimensions={{
+              width: selectedCreatorPreset.width,
+              height: selectedCreatorPreset.height,
+              label: selectedCreatorPreset.shortLabel,
+            }}
+            title={prompt || 'LinkedIn storybook'}
           />
         )}
         {generatedImage && !isLoading && (
@@ -322,7 +381,7 @@ export default function ImageStudio() {
             } : null}
           />
         )}
-        {!generatedImage && !isLoading && (
+        {!generatedImage && storybookPages.length === 0 && !isLoading && (
           <div className="text-center">
             <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-studio-surface border border-studio-border flex items-center justify-center">
               <svg className="w-8 h-8 text-studio-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">

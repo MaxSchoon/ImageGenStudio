@@ -8,6 +8,7 @@ interface LoadingOverlayProps {
   mode?: LoadingMode;
   label?: string;
   dimensions?: string;
+  progressLabel?: string | null;
 }
 
 const IMAGE_STAGES = [
@@ -35,16 +36,16 @@ const STORYBOOK_STAGES = [
     detail: 'Balancing hook, problem, insight, proof, and CTA for the carousel.',
   },
   {
-    title: 'Laying out the page',
-    detail: 'Keeping typography large, mobile-readable, and PDF-safe.',
+    title: 'Laying out the pages',
+    detail: 'Keeping typography large, mobile-readable, and PDF-safe on every page.',
   },
   {
-    title: 'Rendering the spread',
-    detail: 'Building the page as a polished flattened storybook visual.',
+    title: 'Rendering the pages',
+    detail: 'Building each page as a polished flattened storybook visual.',
   },
   {
-    title: 'Checking page consistency',
-    detail: 'Preparing the result for a consistent document carousel sequence.',
+    title: 'Checking PDF consistency',
+    detail: 'Preparing the pages for a consistent document carousel sequence.',
   },
 ];
 
@@ -82,6 +83,7 @@ export default function LoadingOverlay({
   mode = 'image',
   label,
   dimensions,
+  progressLabel,
 }: LoadingOverlayProps) {
   const [elapsedMs, setElapsedMs] = useState(0);
   const stages = useMemo(() => getLoadingStages(mode), [mode]);
@@ -101,7 +103,7 @@ export default function LoadingOverlay({
   }, [mode, label, dimensions]);
 
   const heading = mode === 'storybook'
-    ? 'Building storybook page'
+    ? 'Building PDF Pages'
     : mode === 'enhance'
       ? 'Enhancing image'
       : 'Generating image';
@@ -120,6 +122,9 @@ export default function LoadingOverlay({
               {label || 'Studio run'}{dimensions ? ` - ${dimensions}` : ''}
             </p>
             <h2 className="mt-1 text-lg font-semibold text-studio-text">{heading}</h2>
+            {progressLabel && (
+              <p className="mt-1 text-xs font-medium text-studio-accent">{progressLabel}</p>
+            )}
           </div>
           <div className="min-w-20 rounded-lg border border-studio-border bg-studio-bg px-3 py-2 text-right">
             <div className="text-[10px] uppercase tracking-wider text-studio-text/60">Focus</div>

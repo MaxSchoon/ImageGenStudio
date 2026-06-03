@@ -22,6 +22,36 @@ export interface CreatorPreset {
   negativePromptRules?: string[];
 }
 
+export interface StorybookPagePrompt {
+  pageNumber: number;
+  title: string;
+  role: string;
+  prompt: string;
+}
+
+const STORYBOOK_PAGE_PLAN = [
+  {
+    title: 'Hook',
+    role: 'State one sharp claim or tension the audience recognizes.',
+  },
+  {
+    title: 'Problem',
+    role: 'Show the hidden cost, friction, or missed opportunity.',
+  },
+  {
+    title: 'Insight',
+    role: 'Explain the counterintuitive idea or useful mental model.',
+  },
+  {
+    title: 'Proof',
+    role: 'Show an example, data point, process, or before-and-after.',
+  },
+  {
+    title: 'CTA',
+    role: 'Invite one specific next step tied to the offer.',
+  },
+];
+
 export const CREATOR_PRESETS: CreatorPreset[] = [
   {
     id: 'linkedin-profile-banner',
@@ -80,7 +110,7 @@ export const CREATOR_PRESETS: CreatorPreset[] = [
     dimensions: '720x900',
     width: 720,
     height: 900,
-    generationLayout: 'mobile',
+    generationLayout: 'portrait',
     guidance: '4:5 vertical creative for mobile-first LinkedIn feed images. Best for visual essays and attention-grabbing sales posts.',
     promptPrefix: 'Create a LinkedIn vertical feed image at 720x900, 4:5. Make it mobile-first, with a clear top hook, large readable typography, and no important details near the edges.',
   },
@@ -88,14 +118,14 @@ export const CREATOR_PRESETS: CreatorPreset[] = [
     id: 'linkedin-storybook-page',
     platform: 'linkedin',
     workflow: 'storybook',
-    label: 'LinkedIn PDF storybook page',
-    shortLabel: 'PDF page',
+    label: 'LinkedIn PDF storybook pages',
+    shortLabel: 'PDF Pages',
     dimensions: '1080x1350',
     width: 1080,
     height: 1350,
-    generationLayout: 'mobile',
-    guidance: 'Use for each page in a 5-page LinkedIn document carousel/storybook. Export pages as a flattened PDF with consistent page size.',
-    promptPrefix: 'Create one page for a premium LinkedIn PDF storybook at 1080x1350. Use a sales and marketing narrative, large editorial typography, a clear page headline, one visual idea, and enough whitespace for mobile reading. This page should fit a 5-page document carousel.',
+    generationLayout: 'portrait',
+    guidance: 'Generate a complete 5-page LinkedIn document carousel/storybook and export it as one flattened PDF. Every page stays 1080x1350 with mobile-readable copy.',
+    promptPrefix: 'Create a complete premium LinkedIn PDF storybook as five coordinated 1080x1350 pages. Use a sales and marketing narrative, large editorial typography, one visual idea per page, and enough whitespace for mobile reading. Every page must fit a document carousel without cropped text.',
   },
   {
     id: 'linkedin-image-enhance',
@@ -126,4 +156,30 @@ export function buildCreatorPrompt(userPrompt: string, preset?: CreatorPreset | 
     trimmedPrompt ? `User brief: ${trimmedPrompt}` : '',
     'Output must be polished enough for a creator studio managing executive, founder, or expert accounts.',
   ].filter(Boolean).join('\n\n');
+}
+
+export function buildStorybookPagePrompts(userPrompt: string, preset: CreatorPreset): StorybookPagePrompt[] {
+  const trimmedPrompt = userPrompt.trim();
+  const pageCount = STORYBOOK_PAGE_PLAN.length;
+
+  return STORYBOOK_PAGE_PLAN.map((page, index) => {
+    const pageNumber = index + 1;
+    const prompt = [
+      `Create page ${pageNumber} of ${pageCount} for a premium LinkedIn PDF storybook at ${preset.dimensions}.`,
+      `Page role: ${page.title}. ${page.role}`,
+      'This is one page in a five-page sequence: Hook, Problem, Insight, Proof, CTA.',
+      'Use the same visual system, color palette, type scale, margin rhythm, and brand feel across all pages.',
+      'Content fit contract: keep all text inside a 90px safe margin, use no more than one headline and two short supporting lines, avoid tiny text, avoid dense paragraphs, and leave enough whitespace that the page reads on mobile.',
+      'Do not create a collage, grid, mockup, or contact sheet of multiple pages. Generate exactly one finished page image for this page number.',
+      trimmedPrompt ? `User brief: ${trimmedPrompt}` : '',
+      'Output must be polished enough for a creator studio managing executive, founder, or expert accounts.',
+    ];
+
+    return {
+      pageNumber,
+      title: page.title,
+      role: page.role,
+      prompt: prompt.filter(Boolean).join('\n\n'),
+    };
+  });
 }
