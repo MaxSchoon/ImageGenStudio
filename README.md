@@ -1,13 +1,16 @@
 # Image Generation Studio
 
-A modern image generation application built with Next.js, React, and Tailwind CSS. Generate creator-ready images through OpenRouter's multimodal image models with a beautiful studio UI.
+A modern image generation application built with Next.js, React, and Tailwind CSS. Generate creator-ready images through OpenRouter's multimodal image models and discuss LinkedIn creative strategy in an agentic chat surface.
 
 ## Features
 
-- 🎨 Modern glass morphism design
-- 📱 Multiple layout options (Landscape, Mobile, Square)
+- 🎨 Dark studio interface for creator production work
+- 📱 Multiple layout options (Landscape, Mobile, Portrait, Square)
 - ⚡ Fast image generation through OpenRouter image output models
 - 🤖 Model switching between Nano Banana, GPT Image, Seedream, FLUX, Recraft, and Grok Imagine presets
+- 💬 Agentic AI chat for LinkedIn ideas, web research, and image generation
+- 🔎 Exa-powered web search through OpenRouter inside the chat agent
+- 🎙️ Speech-to-text input for chat drafts
 - 🖼️ Image preview and download
 - ⏳ Beautiful loading screen
 - ✍️ AI-powered text autocomplete and spell correction
@@ -54,14 +57,27 @@ SITE_PASSWORD=        # Set an 8-character password to protect access to the app
 
 ```bash
 OPENROUTER_API_KEY=your_openrouter_api_key_here
-OPENROUTER_CHAT_MODEL=openai/gpt-5.4-mini      # Optional, creator chat default
+OPENROUTER_AGENT_MODEL=openai/gpt-5.5          # Optional, agentic chat default
+OPENROUTER_CHAT_MODEL=openai/gpt-5.4-mini      # Optional, creator workflow drawer default
 OPENROUTER_PROMPT_MODEL=openai/gpt-5.4-mini    # Optional, prompt enhancement default
-NEXT_PUBLIC_APP_URL=http://localhost:3000       # Optional, sent as OpenRouter referer metadata
+NEXT_PUBLIC_APP_URL=http://localhost:3000      # Optional, sent as OpenRouter referer metadata
 ```
 
-- **OPENROUTER_API_KEY**: Required for image generation, prompt enhancement, and creator chat.
+- **OPENROUTER_API_KEY**: Required for image generation, prompt enhancement, creator chat, and the agentic chat.
+- **OPENROUTER_AGENT_MODEL**: Optional agentic chat model. Defaults to `openai/gpt-5.5` with medium reasoning.
 - **OPENROUTER_CHAT_MODEL**: Optional chat model for creator workflow strategy.
 - **OPENROUTER_PROMPT_MODEL**: Optional chat model for autocomplete and prompt polishing.
+
+#### Chat Search and Speech
+
+```bash
+OPENAI_API_KEY=your_openai_api_key_here
+OPENAI_TRANSCRIBE_MODEL=gpt-4o-mini-transcribe  # Optional, speech-to-text default
+```
+
+- Agent search uses OpenRouter's `web` plugin with `engine: "exa"`, so it uses `OPENROUTER_API_KEY` and OpenRouter credits. No separate Exa key is required.
+- **OPENAI_API_KEY**: Enables speech-to-text in the chat composer.
+- **OPENAI_TRANSCRIBE_MODEL**: Optional transcription model. Defaults to `gpt-4o-mini-transcribe`.
 
 Image generation uses OpenRouter's `/api/v1/chat/completions` endpoint with `modalities` and `image_config`. The configured presets are in `lib/modelConfig.ts` and currently include:
 
@@ -81,10 +97,14 @@ ImageGen/
 │   ├── api/
 │   │   ├── auth/
 │   │   │   └── route.ts      # Authentication endpoint
+│   │   ├── chat/
+│   │   │   └── route.ts      # Agentic chat with OpenRouter Exa search and image tools
 │   │   ├── complete/
 │   │   │   └── route.ts      # API route for text autocomplete/correction
-│   │   └── generate/
-│   │       └── route.ts      # API route for OpenRouter image generation
+│   │   ├── generate/
+│   │   │   └── route.ts      # API route for OpenRouter image generation
+│   │   └── transcribe/
+│   │       └── route.ts      # OpenAI speech-to-text endpoint
 │   ├── login/
 │   │   └── page.tsx          # Password-protected login page
 │   ├── globals.css           # Global styles
@@ -92,6 +112,8 @@ ImageGen/
 │   └── page.tsx              # Home page
 ├── components/
 │   ├── Footer.tsx            # Footer component
+│   ├── AppShell.tsx          # Studio/chat shell with bottom status bar
+│   ├── ChatPanel.tsx         # Agentic chat interface
 │   ├── ImagePreview.tsx      # Image preview and download
 │   ├── ImageStudio.tsx       # Main studio orchestrator
 │   ├── LayoutSelector.tsx    # Layout selection UI
@@ -104,6 +126,7 @@ ImageGen/
 ├── lib/
 │   ├── auth.ts               # Authentication utilities
 │   ├── imageGeneration.ts    # Image generation client wrapper
+│   ├── serverImageGeneration.ts # Shared OpenRouter image helper
 │   └── modelConfig.ts        # OpenRouter model capabilities and layout configs
 └── middleware.ts              # Auth middleware for route protection
 ```
@@ -125,6 +148,12 @@ The app includes intelligent text completion powered by OpenRouter:
 - **Tab to Accept**: Press Tab to accept the suggested completion or correction
 
 **Note**: The autocomplete feature requires `OPENROUTER_API_KEY` to be configured.
+
+### Agentic Chat
+
+Use the bottom status bar to switch between Image Studio and AI Chat. The chat keeps conversation history in the current session, uses GPT-5.5 through OpenRouter with medium reasoning, enables OpenRouter's Exa-backed web plugin for current research, and can generate images through the same OpenRouter image helper used by the studio.
+
+Speech-to-text records a short browser microphone clip and submits it to OpenAI's transcription endpoint. The transcript is appended to the composer so the user can edit it before sending.
 
 ## Build
 
@@ -154,8 +183,11 @@ npm start
    - Add your environment variables:
      - `OPENROUTER_API_KEY`: Your OpenRouter API key (required)
      - `SITE_PASSWORD`: Your chosen 8-character password (required)
+     - `OPENAI_API_KEY`: OpenAI API key for speech-to-text (optional but required for voice input)
+     - `OPENROUTER_AGENT_MODEL`: Agentic chat model override (optional)
      - `OPENROUTER_CHAT_MODEL`: Chat model override (optional)
      - `OPENROUTER_PROMPT_MODEL`: Prompt enhancement model override (optional)
+     - `OPENAI_TRANSCRIBE_MODEL`: Speech-to-text model override (optional)
      - `NEXT_PUBLIC_APP_URL`: Public app URL for OpenRouter metadata (optional)
    - Deploy
 

@@ -66,7 +66,7 @@ export default function LoadingOverlay({
   }, [mode, label, dimensions]);
 
   const heading = mode === 'storybook'
-    ? 'Building PDF pages'
+    ? 'Building PDF Pages'
     : mode === 'enhance'
       ? 'Enhancing image'
       : 'Generating image';
