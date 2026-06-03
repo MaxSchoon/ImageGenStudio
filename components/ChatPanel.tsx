@@ -87,6 +87,45 @@ function formatDuration(totalSeconds: number) {
   return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 }
 
+function artifactFilename(artifact: ChatArtifact) {
+  const slug = artifact.prompt
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '')
+    .slice(0, 40);
+  return `imagegen-${slug || 'chat-image'}.png`;
+}
+
+// `download` on an <a> is ignored for cross-origin http(s) URLs, so it silently
+// behaves like "open". Fetch the image into a same-origin blob URL (which honors
+// download); if CORS blocks the fetch, open the URL so the user can still save it.
+async function downloadArtifact(artifact: ChatArtifact) {
+  const filename = artifactFilename(artifact);
+  const trigger = (href: string) => {
+    const anchor = document.createElement('a');
+    anchor.href = href;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+  };
+
+  if (artifact.url.startsWith('data:')) {
+    trigger(artifact.url);
+    return;
+  }
+
+  try {
+    const response = await fetch(artifact.url);
+    if (!response.ok) throw new Error(`Image fetch failed: ${response.status}`);
+    const objectUrl = URL.createObjectURL(await response.blob());
+    trigger(objectUrl);
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 10000);
+  } catch {
+    window.open(artifact.url, '_blank', 'noopener');
+  }
+}
+
 function SourceList({ sources }: { sources?: ChatSource[] }) {
   if (!sources?.length) return null;
 
@@ -137,13 +176,13 @@ function ArtifactList({ artifacts }: { artifacts?: ChatArtifact[] }) {
               >
                 Open
               </a>
-              <a
-                href={artifact.url}
-                download="imagegen-chat-output.png"
+              <button
+                type="button"
+                onClick={() => void downloadArtifact(artifact)}
                 className="inline-flex rounded-md border border-studio-border px-2 py-1 text-xs font-semibold text-studio-text transition-colors hover:border-studio-muted"
               >
                 Download
-              </a>
+              </button>
             </div>
           </figcaption>
         </figure>
