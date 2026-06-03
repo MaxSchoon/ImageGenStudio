@@ -1,6 +1,7 @@
 'use client';
 
 import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from 'react';
+import MarkdownMessage from './MarkdownMessage';
 
 type ChatArtifact = {
   type: 'image';
@@ -248,7 +249,7 @@ function MessageRow({ message }: { message: ChatMessage }) {
     <div className="flex gap-3">
       <AssistantMark />
       <div className="min-w-0 flex-1">
-        <div className="whitespace-pre-wrap text-sm leading-relaxed text-studio-text">{message.content}</div>
+        <MarkdownMessage content={message.content} />
         <ArtifactList artifacts={message.artifacts} />
         <SourceList sources={message.sources} />
       </div>
