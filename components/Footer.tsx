@@ -1,7 +1,5 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-
 const socialLinks = [
   {
     name: 'Website',
@@ -42,11 +40,7 @@ const socialLinks = [
 ];
 
 export function SocialLinks({ showCopyright = false }: { showCopyright?: boolean }) {
-  const [currentYear, setCurrentYear] = useState(2026);
-
-  useEffect(() => {
-    setCurrentYear(new Date().getFullYear());
-  }, []);
+  const currentYear = new Date().getFullYear();
 
   return (
     <div className="flex items-center gap-3">
