@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import ChatPanel from './ChatPanel';
 import ImageStudio from './ImageStudio';
+import { SocialLinks } from './Footer';
 
 type Surface = 'studio' | 'chat';
 
@@ -54,20 +55,25 @@ export default function AppShell() {
       </main>
 
       <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-studio-border bg-studio-surface/95 backdrop-blur pb-safe-area">
-        <div className="mx-auto flex h-status-bar max-w-3xl overflow-hidden">
-          <StatusButton
-            active={surface === 'studio'}
-            label="Image Studio"
-            meta="Generate and export"
-            onClick={() => setSurface('studio')}
-          />
-          <StatusButton
-            active={surface === 'chat'}
-            label="AI Chat"
-            meta="Ideas, research, images"
-            withDivider
-            onClick={() => setSurface('chat')}
-          />
+        <div className="flex h-status-bar items-stretch overflow-hidden">
+          <div className="hidden items-center gap-3 border-r border-studio-border px-4 lg:flex">
+            <SocialLinks showCopyright />
+          </div>
+          <div className="flex min-w-0 flex-1">
+            <StatusButton
+              active={surface === 'studio'}
+              label="Image Studio"
+              meta="Generate and export"
+              onClick={() => setSurface('studio')}
+            />
+            <StatusButton
+              active={surface === 'chat'}
+              label="AI Chat"
+              meta="Ideas, research, images"
+              withDivider
+              onClick={() => setSurface('chat')}
+            />
+          </div>
         </div>
       </nav>
     </div>

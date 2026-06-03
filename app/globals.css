@@ -6,7 +6,7 @@
   /* Single source of truth for the app-wide bottom status bar height.
      Consumed by the shell padding, the bottom nav, and the mobile studio sheet
      so they always line up without gaps or overlap. */
-  --status-bar-height: 3.25rem;
+  --status-bar-height: 2.75rem;
 }
 
 body {
@@ -87,36 +87,12 @@ body {
   }
 }
 
-.chat-typing-dot {
-  animation: chatTyping 1.2s ease-in-out infinite;
-}
-.chat-typing-dot:nth-child(2) {
-  animation-delay: 0.15s;
-}
-.chat-typing-dot:nth-child(3) {
-  animation-delay: 0.3s;
-}
-
-@keyframes chatTyping {
-  0%,
-  60%,
-  100% {
-    opacity: 0.3;
-    transform: translateY(0);
-  }
-  30% {
-    opacity: 1;
-    transform: translateY(-2px);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .loading-progress {
     transition: none;
   }
 
-  .loading-pulse,
-  .chat-typing-dot {
+  .loading-pulse {
     animation: none;
     opacity: 1;
   }
