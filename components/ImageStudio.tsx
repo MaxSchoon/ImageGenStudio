@@ -5,9 +5,11 @@ import StudioControls from './StudioControls';
 import LoadingOverlay from './LoadingOverlay';
 import ImagePreview from './ImagePreview';
 import StorybookPreview, { StorybookPage } from './StorybookPreview';
+import OgPackagePreview, { OgPackageAsset } from './OgPackagePreview';
 import MobileBottomSheet from './MobileBottomSheet';
 import { generateImage } from '@/lib/imageGeneration';
-import { buildCreatorPrompt, buildStorybookPagePrompts, CreatorPreset } from '@/lib/creatorContent';
+import { buildCreatorPrompt, buildStorybookPagePrompts, CreatorPreset, getOgPackageExportPresets } from '@/lib/creatorContent';
+import { OG_MASTER_PRESET_ID } from '@/lib/og/presets';
 import { DEFAULT_MODEL, Layout, Model, MODEL_CAPABILITIES, OPENROUTER_MODEL_BY_VALUE, getLayoutConfig } from '@/lib/modelConfig';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -27,7 +29,9 @@ async function formatPresetImage(image: string, preset: CreatorPreset): Promise<
       image,
       width: preset.width,
       height: preset.height,
-      format: 'png',
+      format: preset.exportFormat || 'png',
+      quality: preset.exportQuality,
+      maxFileSizeKb: preset.maxFileSizeKb,
     }),
   });
 
@@ -76,6 +80,8 @@ export default function ImageStudio() {
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [storybookPages, setStorybookPages] = useState<StorybookPage[]>([]);
   const [storybookProgress, setStorybookProgress] = useState<string | null>(null);
+  const [ogPackageAssets, setOgPackageAssets] = useState<OgPackageAsset[]>([]);
+  const [ogPackageProgress, setOgPackageProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [referenceImageDimensions, setReferenceImageDimensions] = useState<{ width: number; height: number } | null>(null);
@@ -85,9 +91,11 @@ export default function ImageStudio() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const loadingMode = selectedCreatorPreset?.workflow === 'storybook'
     ? 'storybook'
-    : selectedCreatorPreset?.workflow === 'enhance'
-      ? 'enhance'
-      : 'image';
+    : selectedCreatorPreset?.workflow === 'og-package'
+      ? 'og-package'
+      : selectedCreatorPreset?.workflow === 'enhance'
+        ? 'enhance'
+        : 'image';
 
   const validateFile = (file: File): string | null => {
     if (!ALLOWED_FILE_TYPES.includes(file.type)) {
@@ -197,6 +205,7 @@ export default function ImageStudio() {
     setSelectedCreatorPreset(preset);
     setGeneratedImage(null);
     setStorybookPages([]);
+    setOgPackageAssets([]);
     if (preset) {
       setSelectedLayout(preset.generationLayout);
       if (preset.workflow === 'enhance' && !uploadedImage) {
@@ -245,6 +254,8 @@ export default function ImageStudio() {
     setGeneratedImage(null);
     setStorybookPages([]);
     setStorybookProgress(null);
+    setOgPackageAssets([]);
+    setOgPackageProgress(null);
 
     try {
       const imageDataToSend = uploadedImage || undefined;
@@ -252,6 +263,52 @@ export default function ImageStudio() {
       const layoutToUse = generationLayout === 'reference' && referenceImageDimensions
         ? { type: 'reference' as const, width: referenceImageDimensions.width, height: referenceImageDimensions.height }
         : generationLayout;
+
+      if (selectedCreatorPreset?.workflow === 'og-package') {
+        const masterPreset = getOgPackageExportPresets().find((preset) => preset.id === OG_MASTER_PRESET_ID)
+          || selectedCreatorPreset;
+        const exportPresets = getOgPackageExportPresets();
+        const promptToSend = buildCreatorPrompt(prompt, selectedCreatorPreset);
+        setOgPackageProgress('Rendering master preview');
+        const masterImage = await generateImage(promptToSend, masterPreset.generationLayout, selectedModel, imageDataToSend);
+        const assets: OgPackageAsset[] = [];
+        const failedExports: string[] = [];
+
+        for (const exportPreset of exportPresets) {
+          setOgPackageProgress(`Exporting ${exportPreset.shortLabel}`);
+          try {
+            const formattedImage = await formatPresetImage(masterImage, exportPreset);
+            const extension = exportPreset.exportFormat === 'jpeg' ? 'jpg' : 'png';
+            assets.push({
+              presetId: exportPreset.id,
+              label: exportPreset.label,
+              shortLabel: exportPreset.shortLabel,
+              platform: exportPreset.ogPlatform || 'universal',
+              dimensions: exportPreset.dimensions,
+              width: exportPreset.width,
+              height: exportPreset.height,
+              imageUrl: formattedImage,
+              filename: `${exportPreset.id}.${extension}`,
+            });
+          } catch (exportError) {
+            failedExports.push(exportPreset.shortLabel);
+            console.error(`Failed to export ${exportPreset.id}:`, exportError);
+          }
+        }
+
+        if (assets.length === 0) {
+          throw new Error('All social preview exports failed. Try simplifying the brief and generating again.');
+        }
+
+        if (failedExports.length > 0) {
+          setError(`Some exports failed (${failedExports.join(', ')}). Successful variants are shown below.`);
+        }
+
+        setOgPackageAssets(assets);
+        setGeneratedImage(null);
+        setBottomSheetOpen(false);
+        return;
+      }
 
       if (selectedCreatorPreset?.workflow === 'storybook') {
         const pagePrompts = buildStorybookPagePrompts(prompt, selectedCreatorPreset);
@@ -291,6 +348,7 @@ export default function ImageStudio() {
     } finally {
       setIsLoading(false);
       setStorybookProgress(null);
+      setOgPackageProgress(null);
     }
   };
 
@@ -324,7 +382,9 @@ export default function ImageStudio() {
         title: selectedCreatorPreset.shortLabel,
         detail: selectedCreatorPreset.workflow === 'storybook'
           ? `5 pages · ${selectedCreatorPreset.dimensions} PDF via ${OPENROUTER_MODEL_BY_VALUE[selectedModel].shortLabel}`
-          : `${selectedCreatorPreset.dimensions} export via ${OPENROUTER_MODEL_BY_VALUE[selectedModel].shortLabel}`,
+          : selectedCreatorPreset.workflow === 'og-package'
+            ? `${selectedCreatorPreset.dimensions} via ${OPENROUTER_MODEL_BY_VALUE[selectedModel].shortLabel}`
+            : `${selectedCreatorPreset.dimensions} export via ${OPENROUTER_MODEL_BY_VALUE[selectedModel].shortLabel}`,
       }
     : {
         title: 'Freeform image',
@@ -351,7 +411,19 @@ export default function ImageStudio() {
             mode={loadingMode}
             label={selectedCreatorPreset?.shortLabel}
             dimensions={selectedCreatorPreset?.dimensions}
-            progressLabel={storybookProgress}
+            progressLabel={storybookProgress || ogPackageProgress}
+          />
+        )}
+        {ogPackageAssets.length > 0 && !isLoading && selectedCreatorPreset?.workflow === 'og-package' && (
+          <OgPackagePreview
+            assets={ogPackageAssets}
+            metaInput={{
+              url: 'https://your-domain.com',
+              title: prompt || 'Website preview',
+              description: prompt || 'Website preview image',
+              siteName: 'Your Site',
+              themeColor: '#1a1a1a',
+            }}
           />
         )}
         {storybookPages.length > 0 && !isLoading && selectedCreatorPreset?.workflow === 'storybook' && (
@@ -377,7 +449,7 @@ export default function ImageStudio() {
             } : null}
           />
         )}
-        {!generatedImage && storybookPages.length === 0 && !isLoading && (
+        {!generatedImage && storybookPages.length === 0 && ogPackageAssets.length === 0 && !isLoading && (
           <div className="text-center">
             <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-studio-surface border border-studio-border flex items-center justify-center">
               <svg className="w-8 h-8 text-studio-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">

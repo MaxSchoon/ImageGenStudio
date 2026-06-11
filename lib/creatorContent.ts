@@ -1,7 +1,10 @@
 import { Layout } from './modelConfig';
+import { getOgPackagePresets, getOgPreset, OG_MASTER_PRESET_ID, OG_PRESETS } from './og/presets';
+import { buildOgPackageMasterPrompt, buildOgPrompt } from './og/prompts';
+import { OgPreset } from './og/types';
 
-export type CreatorPlatform = 'linkedin';
-export type CreatorWorkflow = 'banner' | 'post-image' | 'storybook' | 'enhance';
+export type CreatorPlatform = 'linkedin' | 'website';
+export type CreatorWorkflow = 'banner' | 'post-image' | 'storybook' | 'enhance' | 'og-image' | 'og-package';
 
 export interface CreatorPreset {
   id: string;
@@ -20,6 +23,10 @@ export interface CreatorPreset {
     description: string;
   };
   negativePromptRules?: string[];
+  exportFormat?: 'jpeg' | 'png';
+  exportQuality?: number;
+  maxFileSizeKb?: number;
+  ogPlatform?: OgPreset['platform'];
 }
 
 export interface StorybookPagePrompt {
@@ -140,21 +147,87 @@ export const CREATOR_PRESETS: CreatorPreset[] = [
     guidance: 'Upload a source image first. The prompt preserves subject identity while improving color, contrast, crop, sharpness, and premium social polish.',
     promptPrefix: 'Enhance the uploaded image for LinkedIn creator content. Preserve the subject, identity, product details, and composition intent. Improve exposure, contrast, color balance, skin tones if present, clarity, background cleanup, subtle sharpening, and premium editorial polish similar to a careful Lightroom pass. Do not make it look artificial.',
   },
+  ...OG_PRESETS.map((preset) => ({
+    id: preset.id,
+    platform: 'website' as const,
+    workflow: 'og-image' as const,
+    label: preset.label,
+    shortLabel: preset.shortLabel,
+    dimensions: preset.dimensions,
+    width: preset.width,
+    height: preset.height,
+    generationLayout: preset.generationLayout,
+    guidance: preset.guidance,
+    promptPrefix: preset.promptPrefix,
+    exportFormat: preset.format,
+    exportQuality: preset.quality,
+    maxFileSizeKb: preset.maxFileSizeKb,
+    ogPlatform: preset.platform,
+    safeArea: preset.safeZone.landscapeBand
+      ? {
+          label: 'Landscape safe band',
+          description: `Keep critical text inside a centered ${preset.safeZone.landscapeBand.width}x${preset.safeZone.landscapeBand.height} band so crops stay readable on every platform.`,
+        }
+      : {
+          label: 'Safe zone',
+          description: `Keep essential content inside the center 80% with at least ${preset.safeZone.marginPx}px margins.`,
+        },
+  })),
+  {
+    id: 'website-og-package',
+    platform: 'website',
+    workflow: 'og-package',
+    label: 'Full social preview package',
+    shortLabel: 'OG package',
+    dimensions: '6 exports',
+    width: 1200,
+    height: 1200,
+    generationLayout: 'square',
+    guidance: 'Generate one master square image, then export optimized variants for Facebook, X, LinkedIn, Slack, Discord, WhatsApp, Pinterest, and Apple previews with matching meta tags.',
+    promptPrefix: 'Create a master social preview image for a website launch package.',
+    safeArea: {
+      label: 'Landscape safe band',
+      description: 'Keep all critical text inside a centered 1200x630 band within the 1200x1200 master so every platform crop stays readable.',
+    },
+  },
 ];
 
 export function getCreatorPreset(id: string): CreatorPreset | undefined {
   return CREATOR_PRESETS.find((preset) => preset.id === id);
 }
 
+export function getWebsiteOgPresets(): CreatorPreset[] {
+  return CREATOR_PRESETS.filter((preset) => preset.platform === 'website');
+}
+
+export function getOgPackageExportPresets(): CreatorPreset[] {
+  return getOgPackagePresets().map((preset) => getCreatorPreset(preset.id)).filter((preset): preset is CreatorPreset => Boolean(preset));
+}
+
 export function buildCreatorPrompt(userPrompt: string, preset?: CreatorPreset | null): string {
   const trimmedPrompt = userPrompt.trim();
   if (!preset) return trimmedPrompt;
+
+  if (preset.platform === 'website') {
+    const ogPreset = getOgPreset(preset.id);
+    if (preset.workflow === 'og-package' && preset.id === 'website-og-package') {
+      const masterPreset = getOgPreset(OG_MASTER_PRESET_ID);
+      if (masterPreset) {
+        return buildOgPackageMasterPrompt(trimmedPrompt, masterPreset);
+      }
+    }
+    if (ogPreset) {
+      return buildOgPrompt(trimmedPrompt, ogPreset);
+    }
+  }
 
   return [
     preset.promptPrefix,
     ...(preset.negativePromptRules || []),
     trimmedPrompt ? `User brief: ${trimmedPrompt}` : '',
-    'Output must be polished enough for a creator studio managing executive, founder, or expert accounts.',
+    preset.platform === 'website'
+      ? 'Output must be polished enough for production website launch and social link previews.'
+      : 'Output must be polished enough for a creator studio managing executive, founder, or expert accounts.',
   ].filter(Boolean).join('\n\n');
 }
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 
-type LoadingMode = 'image' | 'storybook' | 'enhance';
+type LoadingMode = 'image' | 'storybook' | 'enhance' | 'og-package';
 
 interface LoadingOverlayProps {
   mode?: LoadingMode;
@@ -32,9 +32,17 @@ const ENHANCE_STAGES = [
   'Checking fidelity',
 ];
 
+const OG_PACKAGE_STAGES = [
+  'Designing the master preview',
+  'Rendering the master asset',
+  'Exporting platform variants',
+  'Building meta tags',
+];
+
 function getLoadingStages(mode: LoadingMode) {
   if (mode === 'storybook') return STORYBOOK_STAGES;
   if (mode === 'enhance') return ENHANCE_STAGES;
+  if (mode === 'og-package') return OG_PACKAGE_STAGES;
   return IMAGE_STAGES;
 }
 
@@ -69,7 +77,9 @@ export default function LoadingOverlay({
     ? 'Building PDF Pages'
     : mode === 'enhance'
       ? 'Enhancing image'
-      : 'Generating image';
+      : mode === 'og-package'
+        ? 'Building social package'
+        : 'Generating image';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-studio-bg/90 px-4 backdrop-blur-sm">
