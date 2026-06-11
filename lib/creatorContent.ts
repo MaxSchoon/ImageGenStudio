@@ -170,7 +170,7 @@ export const CREATOR_PRESETS: CreatorPreset[] = [
         }
       : {
           label: 'Safe zone',
-          description: `Keep essential content inside the center 80% with at least ${preset.safeZone.marginPx}px margins.`,
+          description: `Keep essential content inside the center 80% with at least ${preset.safeZone.marginPx}px side margins and 100px top margin. Text must never sit on or behind outer frames or borders.`,
         },
   })),
   {
@@ -187,7 +187,7 @@ export const CREATOR_PRESETS: CreatorPreset[] = [
     promptPrefix: 'Create a master social preview image for a website launch package.',
     safeArea: {
       label: 'Landscape safe band',
-      description: 'Keep all critical text inside a centered 1200x630 band within the 1200x1200 master so every platform crop stays readable.',
+      description: 'Keep all critical text inside a centered 1200x630 band within the 1200x1200 master with 100px top clearance. Headlines must fit inside the band without touching outer frames or canvas edges.',
     },
   },
 ];

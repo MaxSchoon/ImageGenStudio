@@ -28,14 +28,26 @@ assert.match(ogPresets, /maxFileSizeKb: 300/, 'WhatsApp-safe file size guidance 
 assert.match(ogMeta, /twitter:card/, 'Meta builder should include twitter:card');
 assert.match(ogMeta, /og:image:width/, 'Meta builder should include og:image:width');
 
+const ogPrompts = await readFile(new URL('../lib/og/prompts.ts', import.meta.url), 'utf8');
+
 for (const phrase of [
   'summary_large_image',
   'theme-color',
   'first 32 KB',
   '300 KB',
   '1200x630',
+  'behind outer frames',
+  '100px top padding',
 ]) {
   assert.match(ogChatRoute, new RegExp(phrase, 'i'), `OG assistant rules should include: ${phrase}`);
+}
+
+for (const phrase of [
+  'OG_TYPOGRAPHY_SAFETY_RULES',
+  'No text may touch, overlap, sit behind',
+  'at least 100px padding from the top edge',
+]) {
+  assert.match(ogPrompts, new RegExp(phrase, 'i'), `OG prompt safety rules should include: ${phrase}`);
 }
 
 console.log('Open Graph workflow contract passed.');
