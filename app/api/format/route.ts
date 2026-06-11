@@ -18,21 +18,41 @@ async function compressToMaxSize(
   quality: number,
   maxFileSizeKb?: number,
 ): Promise<Buffer> {
-  if (format === 'png' || !maxFileSizeKb) {
+  if (!maxFileSizeKb) {
     return format === 'jpeg'
       ? pipeline.jpeg({ quality, mozjpeg: true }).toBuffer()
       : pipeline.png({ compressionLevel: 9 }).toBuffer();
   }
 
+  const maxBytes = maxFileSizeKb * 1024;
+  let workingPipeline = pipeline;
   let currentQuality = quality;
-  let buffer = await pipeline.jpeg({ quality: currentQuality, mozjpeg: true }).toBuffer();
 
-  while (buffer.length > maxFileSizeKb * 1024 && currentQuality > 45) {
-    currentQuality -= 5;
-    buffer = await sharp(buffer).jpeg({ quality: currentQuality, mozjpeg: true }).toBuffer();
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const buffer = format === 'jpeg'
+      ? await workingPipeline.jpeg({ quality: currentQuality, mozjpeg: true }).toBuffer()
+      : await workingPipeline.png({ compressionLevel: 9 }).toBuffer();
+
+    if (buffer.length <= maxBytes) {
+      return buffer;
+    }
+
+    if (format === 'jpeg' && currentQuality > 45) {
+      currentQuality -= 5;
+      workingPipeline = sharp(buffer);
+      continue;
+    }
+
+    const metadata = await sharp(buffer).metadata();
+    const nextWidth = Math.max(320, Math.floor((metadata.width || 1) * 0.85));
+    const nextHeight = Math.max(320, Math.floor((metadata.height || 1) * 0.85));
+    workingPipeline = sharp(buffer).resize(nextWidth, nextHeight, {
+      fit: 'inside',
+      withoutEnlargement: true,
+    });
   }
 
-  return buffer;
+  throw new Error(`Unable to compress image below ${maxFileSizeKb} KB. Try simplifying the visual or lowering detail.`);
 }
 
 export async function POST(request: NextRequest) {

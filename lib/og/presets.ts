@@ -28,7 +28,7 @@ export const OG_PRESETS: OgPreset[] = [
     guidance: 'Default link preview for Facebook, LinkedIn, Slack, Discord, and WhatsApp. Keep text in the center 80% and avoid the bottom 20%.',
     promptPrefix: 'Create an Open Graph link preview image at 1200x630, 1.91:1 aspect ratio. Design for social link previews across Facebook, LinkedIn, Slack, and WhatsApp. Keep all text and logos inside the center 80% safe zone with 80px margins. Use a minimum 64px headline, high contrast, bold shapes, and no fine detail that disappears after compression. Avoid placing text in the bottom 20% where platforms overlay the domain.',
     metaTagTarget: 'og:image',
-    packageRole: 'master',
+    packageRole: 'derivative',
   },
   {
     id: 'og-twitter-large',
@@ -66,7 +66,7 @@ export const OG_PRESETS: OgPreset[] = [
     guidance: 'Square preview that survives iOS square crops. Keep critical content inside a centered 1200x630 band.',
     promptPrefix: 'Create a 1200x1200 square Open Graph image for Apple iMessage and iOS link previews. Place all critical text, logos, and visuals inside a centered 1200x630 landscape band. Use high contrast and large typography readable on mobile.',
     metaTagTarget: 'og:image',
-    packageRole: 'derivative',
+    packageRole: 'master',
   },
   {
     id: 'og-pinterest-pin',

@@ -61,9 +61,13 @@ export default function OgPackagePreview({ assets, metaInput }: OgPackagePreview
   if (!activeAsset) return null;
 
   const handleCopyMeta = async () => {
-    await navigator.clipboard.writeText(metaHtml);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(metaHtml);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+    }
   };
 
   const handleDownload = (asset: OgPackageAsset) => {

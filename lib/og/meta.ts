@@ -23,12 +23,12 @@ export function buildOgMetaTags(input: OgMetaInput): OgMetaTag[] {
     { tag: 'meta', name: 'twitter:card', content: 'summary_large_image' },
     { tag: 'meta', name: 'twitter:title', content: input.title },
     { tag: 'meta', name: 'twitter:description', content: input.description },
-    {
-      tag: 'meta',
-      name: 'twitter:image',
-      content: input.twitterImage || input.images[0]?.url || '',
-    },
   );
+
+  const twitterImage = input.twitterImage || input.images[0]?.url;
+  if (twitterImage) {
+    tags.push({ tag: 'meta', name: 'twitter:image', content: twitterImage });
+  }
 
   if (input.themeColor) {
     tags.push({ tag: 'meta', name: 'theme-color', content: input.themeColor });

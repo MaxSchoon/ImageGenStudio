@@ -1,5 +1,5 @@
 import { Layout } from './modelConfig';
-import { getOgPackagePresets, getOgPreset, OG_PRESETS } from './og/presets';
+import { getOgPackagePresets, getOgPreset, OG_MASTER_PRESET_ID, OG_PRESETS } from './og/presets';
 import { buildOgPackageMasterPrompt, buildOgPrompt } from './og/prompts';
 import { OgPreset } from './og/types';
 
@@ -211,7 +211,7 @@ export function buildCreatorPrompt(userPrompt: string, preset?: CreatorPreset | 
   if (preset.platform === 'website') {
     const ogPreset = getOgPreset(preset.id);
     if (preset.workflow === 'og-package' && preset.id === 'website-og-package') {
-      const masterPreset = getOgPreset('og-imessage-square');
+      const masterPreset = getOgPreset(OG_MASTER_PRESET_ID);
       if (masterPreset) {
         return buildOgPackageMasterPrompt(trimmedPrompt, masterPreset);
       }

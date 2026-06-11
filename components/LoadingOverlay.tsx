@@ -77,7 +77,9 @@ export default function LoadingOverlay({
     ? 'Building PDF Pages'
     : mode === 'enhance'
       ? 'Enhancing image'
-      : 'Generating image';
+      : mode === 'og-package'
+        ? 'Building social package'
+        : 'Generating image';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-studio-bg/90 px-4 backdrop-blur-sm">

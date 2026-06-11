@@ -9,6 +9,7 @@ import OgPackagePreview, { OgPackageAsset } from './OgPackagePreview';
 import MobileBottomSheet from './MobileBottomSheet';
 import { generateImage } from '@/lib/imageGeneration';
 import { buildCreatorPrompt, buildStorybookPagePrompts, CreatorPreset, getOgPackageExportPresets } from '@/lib/creatorContent';
+import { OG_MASTER_PRESET_ID } from '@/lib/og/presets';
 import { DEFAULT_MODEL, Layout, Model, MODEL_CAPABILITIES, OPENROUTER_MODEL_BY_VALUE, getLayoutConfig } from '@/lib/modelConfig';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -264,29 +265,43 @@ export default function ImageStudio() {
         : generationLayout;
 
       if (selectedCreatorPreset?.workflow === 'og-package') {
-        const masterPreset = getOgPackageExportPresets().find((preset) => preset.id === 'og-imessage-square')
+        const masterPreset = getOgPackageExportPresets().find((preset) => preset.id === OG_MASTER_PRESET_ID)
           || selectedCreatorPreset;
         const exportPresets = getOgPackageExportPresets();
         const promptToSend = buildCreatorPrompt(prompt, selectedCreatorPreset);
         setOgPackageProgress('Rendering master preview');
         const masterImage = await generateImage(promptToSend, masterPreset.generationLayout, selectedModel, imageDataToSend);
         const assets: OgPackageAsset[] = [];
+        const failedExports: string[] = [];
 
         for (const exportPreset of exportPresets) {
           setOgPackageProgress(`Exporting ${exportPreset.shortLabel}`);
-          const formattedImage = await formatPresetImage(masterImage, exportPreset);
-          const extension = exportPreset.exportFormat === 'jpeg' ? 'jpg' : 'png';
-          assets.push({
-            presetId: exportPreset.id,
-            label: exportPreset.label,
-            shortLabel: exportPreset.shortLabel,
-            platform: exportPreset.ogPlatform || 'universal',
-            dimensions: exportPreset.dimensions,
-            width: exportPreset.width,
-            height: exportPreset.height,
-            imageUrl: formattedImage,
-            filename: `${exportPreset.id}.${extension}`,
-          });
+          try {
+            const formattedImage = await formatPresetImage(masterImage, exportPreset);
+            const extension = exportPreset.exportFormat === 'jpeg' ? 'jpg' : 'png';
+            assets.push({
+              presetId: exportPreset.id,
+              label: exportPreset.label,
+              shortLabel: exportPreset.shortLabel,
+              platform: exportPreset.ogPlatform || 'universal',
+              dimensions: exportPreset.dimensions,
+              width: exportPreset.width,
+              height: exportPreset.height,
+              imageUrl: formattedImage,
+              filename: `${exportPreset.id}.${extension}`,
+            });
+          } catch (exportError) {
+            failedExports.push(exportPreset.shortLabel);
+            console.error(`Failed to export ${exportPreset.id}:`, exportError);
+          }
+        }
+
+        if (assets.length === 0) {
+          throw new Error('All social preview exports failed. Try simplifying the brief and generating again.');
+        }
+
+        if (failedExports.length > 0) {
+          setError(`Some exports failed (${failedExports.join(', ')}). Successful variants are shown below.`);
         }
 
         setOgPackageAssets(assets);
@@ -333,6 +348,7 @@ export default function ImageStudio() {
     } finally {
       setIsLoading(false);
       setStorybookProgress(null);
+      setOgPackageProgress(null);
     }
   };
 
