@@ -40,10 +40,20 @@ export interface ModelOption {
   supportsImageConfig: boolean;
 }
 
-export const DEFAULT_MODEL: Model = 'nano-banana-2';
+export const DEFAULT_MODEL: Model = 'gpt-image-2';
 
 // Current SOTA image models available through OpenRouter image output models.
 export const OPENROUTER_IMAGE_MODELS: ModelOption[] = [
+  {
+    value: 'gpt-image-2',
+    label: 'GPT Image 2',
+    shortLabel: 'GPT Image',
+    description: 'OpenAI high-end instruction following and text rendering.',
+    openRouterModel: 'openai/gpt-5.4-image-2',
+    outputModalities: ['image', 'text'],
+    imageSize: '2K',
+    supportsImageConfig: true,
+  },
   {
     value: 'nano-banana-2',
     label: 'Nano Banana 2',
@@ -60,16 +70,6 @@ export const OPENROUTER_IMAGE_MODELS: ModelOption[] = [
     shortLabel: 'Banana Pro',
     description: 'Premium Gemini reasoning for complex creative direction.',
     openRouterModel: 'google/gemini-3-pro-image-preview',
-    outputModalities: ['image', 'text'],
-    imageSize: '2K',
-    supportsImageConfig: true,
-  },
-  {
-    value: 'gpt-image-2',
-    label: 'GPT Image 2',
-    shortLabel: 'GPT Image',
-    description: 'OpenAI high-end instruction following and text rendering.',
-    openRouterModel: 'openai/gpt-5.4-image-2',
     outputModalities: ['image', 'text'],
     imageSize: '2K',
     supportsImageConfig: true,

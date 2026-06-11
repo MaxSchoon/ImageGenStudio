@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 
-type LoadingMode = 'image' | 'storybook' | 'enhance';
+type LoadingMode = 'image' | 'storybook' | 'enhance' | 'og-package';
 
 interface LoadingOverlayProps {
   mode?: LoadingMode;
@@ -32,9 +32,17 @@ const ENHANCE_STAGES = [
   'Checking fidelity',
 ];
 
+const OG_PACKAGE_STAGES = [
+  'Designing the master preview',
+  'Rendering the master asset',
+  'Exporting platform variants',
+  'Building meta tags',
+];
+
 function getLoadingStages(mode: LoadingMode) {
   if (mode === 'storybook') return STORYBOOK_STAGES;
   if (mode === 'enhance') return ENHANCE_STAGES;
+  if (mode === 'og-package') return OG_PACKAGE_STAGES;
   return IMAGE_STAGES;
 }
 

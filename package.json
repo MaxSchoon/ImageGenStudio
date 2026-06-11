@@ -10,6 +10,7 @@
     "test:banner-contract": "node scripts/check-linkedin-banner-contract.mjs",
     "test:storybook-contract": "node scripts/check-storybook-contract.mjs",
     "test:agent-chat-contract": "node scripts/check-agent-chat-contract.mjs",
+    "test:og-contract": "node scripts/check-og-contract.mjs",
     "generate-icons": "node scripts/generate-icons.js"
   },
   "dependencies": {

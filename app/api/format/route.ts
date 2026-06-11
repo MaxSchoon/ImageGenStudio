@@ -12,9 +12,39 @@ function parseImageData(dataUri: string): Buffer {
   return Buffer.from(match[1], 'base64');
 }
 
+async function compressToMaxSize(
+  pipeline: sharp.Sharp,
+  format: 'jpeg' | 'png',
+  quality: number,
+  maxFileSizeKb?: number,
+): Promise<Buffer> {
+  if (format === 'png' || !maxFileSizeKb) {
+    return format === 'jpeg'
+      ? pipeline.jpeg({ quality, mozjpeg: true }).toBuffer()
+      : pipeline.png({ compressionLevel: 9 }).toBuffer();
+  }
+
+  let currentQuality = quality;
+  let buffer = await pipeline.jpeg({ quality: currentQuality, mozjpeg: true }).toBuffer();
+
+  while (buffer.length > maxFileSizeKb * 1024 && currentQuality > 45) {
+    currentQuality -= 5;
+    buffer = await sharp(buffer).jpeg({ quality: currentQuality, mozjpeg: true }).toBuffer();
+  }
+
+  return buffer;
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const { image, width, height, format = 'png' } = await request.json();
+    const {
+      image,
+      width,
+      height,
+      format = 'png',
+      quality = 92,
+      maxFileSizeKb,
+    } = await request.json();
 
     if (!image || typeof image !== 'string') {
       return NextResponse.json({ error: 'Image is required' }, { status: 400 });
@@ -37,9 +67,7 @@ export async function POST(request: NextRequest) {
       })
       .sharpen({ sigma: 0.6 });
 
-    const buffer = outputFormat === 'jpeg'
-      ? await pipeline.jpeg({ quality: 92, mozjpeg: true }).toBuffer()
-      : await pipeline.png({ compressionLevel: 9 }).toBuffer();
+    const buffer = await compressToMaxSize(pipeline, outputFormat, quality, maxFileSizeKb);
 
     return NextResponse.json({
       image: `data:image/${outputFormat};base64,${buffer.toString('base64')}`,
