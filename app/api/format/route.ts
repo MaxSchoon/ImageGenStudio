@@ -64,6 +64,7 @@ export async function POST(request: NextRequest) {
       format = 'png',
       quality = 92,
       maxFileSizeKb,
+      fit = 'cover',
     } = await request.json();
 
     if (!image || typeof image !== 'string') {
@@ -79,11 +80,13 @@ export async function POST(request: NextRequest) {
     }
 
     const outputFormat = format === 'jpeg' || format === 'jpg' ? 'jpeg' : 'png';
+    const resizeFit = fit === 'contain' ? 'contain' : 'cover';
     const pipeline = sharp(parseImageData(image))
       .resize(width, height, {
-        fit: 'cover',
-        position: 'center',
+        fit: resizeFit,
+        position: 'centre',
         withoutEnlargement: false,
+        background: resizeFit === 'contain' ? { r: 26, g: 26, b: 26, alpha: 1 } : undefined,
       })
       .sharpen({ sigma: 0.6 });
 

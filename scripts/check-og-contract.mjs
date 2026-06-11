@@ -37,17 +37,20 @@ for (const phrase of [
   '300 KB',
   '1200x630',
   'behind outer frames',
-  '100px top padding',
+  '60px bottom padding',
 ]) {
   assert.match(ogChatRoute, new RegExp(phrase, 'i'), `OG assistant rules should include: ${phrase}`);
 }
 
 for (const phrase of [
   'OG_TYPOGRAPHY_SAFETY_RULES',
-  'No text may touch, overlap, sit behind',
-  'at least 100px padding from the top edge',
+  'OG_LANDSCAPE_ARTBOARD_RULES',
+  'Never anchor headlines to the bottom edge',
+  'native 1200x630 landscape composition',
 ]) {
   assert.match(ogPrompts, new RegExp(phrase, 'i'), `OG prompt safety rules should include: ${phrase}`);
 }
+
+assert.match(ogPresets, /OG_MASTER_PRESET_ID = 'og-universal-landscape'/, 'Package master should be landscape OG');
 
 console.log('Open Graph workflow contract passed.');

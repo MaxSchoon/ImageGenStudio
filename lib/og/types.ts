@@ -37,6 +37,7 @@ export interface OgPreset {
   promptPrefix: string;
   metaTagTarget: OgMetaTagTarget;
   packageRole?: 'master' | 'derivative';
+  exportFit?: 'cover' | 'contain';
 }
 
 export interface OgMetaImage {

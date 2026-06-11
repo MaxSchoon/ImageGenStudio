@@ -9,7 +9,7 @@ import OgPackagePreview, { OgPackageAsset } from './OgPackagePreview';
 import MobileBottomSheet from './MobileBottomSheet';
 import { generateImage } from '@/lib/imageGeneration';
 import { buildCreatorPrompt, buildStorybookPagePrompts, CreatorPreset, getOgPackageExportPresets } from '@/lib/creatorContent';
-import { OG_MASTER_PRESET_ID } from '@/lib/og/presets';
+
 import { DEFAULT_MODEL, Layout, Model, MODEL_CAPABILITIES, OPENROUTER_MODEL_BY_VALUE, getLayoutConfig } from '@/lib/modelConfig';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -32,6 +32,7 @@ async function formatPresetImage(image: string, preset: CreatorPreset): Promise<
       format: preset.exportFormat || 'png',
       quality: preset.exportQuality,
       maxFileSizeKb: preset.maxFileSizeKb,
+      fit: preset.exportFit || 'cover',
     }),
   });
 
@@ -265,12 +266,15 @@ export default function ImageStudio() {
         : generationLayout;
 
       if (selectedCreatorPreset?.workflow === 'og-package') {
-        const masterPreset = getOgPackageExportPresets().find((preset) => preset.id === OG_MASTER_PRESET_ID)
-          || selectedCreatorPreset;
         const exportPresets = getOgPackageExportPresets();
         const promptToSend = buildCreatorPrompt(prompt, selectedCreatorPreset);
         setOgPackageProgress('Rendering master preview');
-        const masterImage = await generateImage(promptToSend, masterPreset.generationLayout, selectedModel, imageDataToSend);
+        const masterImage = await generateImage(
+          promptToSend,
+          selectedCreatorPreset.generationLayout,
+          selectedModel,
+          imageDataToSend,
+        );
         const assets: OgPackageAsset[] = [];
         const failedExports: string[] = [];
 

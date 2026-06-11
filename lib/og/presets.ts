@@ -26,9 +26,9 @@ export const OG_PRESETS: OgPreset[] = [
     quality: 85,
     safeZone: UNIVERSAL_SAFE_ZONE,
     guidance: 'Default link preview for Facebook, LinkedIn, Slack, Discord, and WhatsApp. Keep text in the center 80% and avoid the bottom 20%.',
-    promptPrefix: 'Create an Open Graph link preview image at 1200x630, 1.91:1 aspect ratio. Design for social link previews across Facebook, LinkedIn, Slack, and WhatsApp. Keep all text and logos inside the center 80% safe zone with at least 80px side margins and 100px top margin. Headlines must fit within the safe zone without touching frame borders. Use high contrast, bold shapes, and no fine detail that disappears after compression. Avoid placing text in the bottom 20% where platforms overlay the domain.',
+    promptPrefix: 'Create a 1200x630, 1.91:1 Open Graph landscape image. Treat the entire canvas as the final artboard — every element must fit inside this frame with visible padding on all sides. Place the headline in the upper third, never at the bottom edge. Keep at least 80px side margins, 80px top margin, and 60px bottom margin. All text, diagrams, and icons must be fully inside the frame with no clipping. Use high contrast and bold shapes. Leave the bottom 20% free of important text because platforms overlay the domain.',
     metaTagTarget: 'og:image',
-    packageRole: 'derivative',
+    packageRole: 'master',
   },
   {
     id: 'og-twitter-large',
@@ -66,7 +66,8 @@ export const OG_PRESETS: OgPreset[] = [
     guidance: 'Square preview that survives iOS square crops. Keep critical content inside a centered 1200x630 band.',
     promptPrefix: 'Create a 1200x1200 square Open Graph image for Apple iMessage and iOS link previews. Place all critical text, logos, and visuals inside a centered 1200x630 landscape band with at least 100px clearance from the top edge. Headlines must be scaled to fit inside the band without touching outer frames or canvas edges. Use high contrast and large typography readable on mobile.',
     metaTagTarget: 'og:image',
-    packageRole: 'master',
+    packageRole: 'derivative',
+    exportFit: 'contain',
   },
   {
     id: 'og-pinterest-pin',
@@ -136,7 +137,7 @@ export const OG_PACKAGE_PRESET_IDS = [
   'og-retina-landscape',
 ] as const;
 
-export const OG_MASTER_PRESET_ID = 'og-imessage-square';
+export const OG_MASTER_PRESET_ID = 'og-universal-landscape';
 
 export function getOgPreset(id: string): OgPreset | undefined {
   return OG_PRESETS.find((preset) => preset.id === id);

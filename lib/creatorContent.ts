@@ -27,6 +27,7 @@ export interface CreatorPreset {
   exportQuality?: number;
   maxFileSizeKb?: number;
   ogPlatform?: OgPreset['platform'];
+  exportFit?: 'cover' | 'contain';
 }
 
 export interface StorybookPagePrompt {
@@ -162,6 +163,7 @@ export const CREATOR_PRESETS: CreatorPreset[] = [
     exportFormat: preset.format,
     exportQuality: preset.quality,
     maxFileSizeKb: preset.maxFileSizeKb,
+    exportFit: preset.exportFit,
     ogPlatform: preset.platform,
     safeArea: preset.safeZone.landscapeBand
       ? {
@@ -181,13 +183,13 @@ export const CREATOR_PRESETS: CreatorPreset[] = [
     shortLabel: 'OG package',
     dimensions: '6 exports',
     width: 1200,
-    height: 1200,
-    generationLayout: 'square',
-    guidance: 'Generate one master square image, then export optimized variants for Facebook, X, LinkedIn, Slack, Discord, WhatsApp, Pinterest, and Apple previews with matching meta tags.',
-    promptPrefix: 'Create a master social preview image for a website launch package.',
+    height: 630,
+    generationLayout: 'landscape',
+    guidance: 'Generate one native 1200x630 landscape master, then export optimized variants for Facebook, X, LinkedIn, Slack, Discord, WhatsApp, Pinterest, and Apple previews with matching meta tags.',
+    promptPrefix: 'Create a master 1200x630 landscape social preview image for a website launch package.',
     safeArea: {
-      label: 'Landscape safe band',
-      description: 'Keep all critical text inside a centered 1200x630 band within the 1200x1200 master with 100px top clearance. Headlines must fit inside the band without touching outer frames or canvas edges.',
+      label: 'Landscape artboard',
+      description: 'Compose the full design inside the 1200x630 frame. Headline in the upper third, 80px side margins, 60px bottom margin. Nothing may clip at the edges.',
     },
   },
 ];
